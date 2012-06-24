@@ -1,4 +1,5 @@
 #include "Imaging.h"
+#include "Errors.h"
 
 bool WindowsImagingComponent::Initialize()
 {
@@ -7,7 +8,7 @@ bool WindowsImagingComponent::Initialize()
 	result = CoCreateInstance( CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory, (LPVOID*) &this->pFactory);
 	if( !SUCCEEDED(result) )
 	{
-		printf("WindowsImagingComponent::Initialize()::CoCreateInstance(); FATAL ERROR: %x\r\n", result );
+		logger.printf( _T("WindowsImagingComponent::Initialize()::CoCreateInstance(); FATAL ERROR: %x\r\n"), result );
 		return false;
 	}
 
@@ -20,56 +21,56 @@ bool WindowsImagingComponent::ConvertBitmapToPng( HBITMAP hbmp, unsigned int wid
 
 	if( !this->pFactory )
 	{
-		printf("WindowsImagingComponent::ConvertBitmapToPng() error: IWICImagingFactory is missing\r\n" );
+		logger.printf( _T("WindowsImagingComponent::ConvertBitmapToPng() error: IWICImagingFactory is missing\r\n") );
 		return false;
 	}
 
 	result = this->pFactory->CreateStream( &this->pStream );
 	if( !SUCCEEDED(result) )
 	{
-		printf("WindowsImagingComponent::ConvertBitmapToPng()::CreateStream(); FATAL ERROR: %x\r\n", result );
+		logger.printf( _T("WindowsImagingComponent::ConvertBitmapToPng()::CreateStream(); FATAL ERROR: %x\r\n"), result );
 		return false;
 	}
 
 	result = this->pStream->InitializeFromFilename( TEXT("captureoutput.png"), GENERIC_WRITE );
 	if( !SUCCEEDED(result) )
 	{
-		printf("WindowsImagingComponent::ConvertBitmapToPng()::InitializeFromFilename(); FATAL ERROR: %x\r\n", result );
+		logger.printf( _T("WindowsImagingComponent::ConvertBitmapToPng()::InitializeFromFilename(); FATAL ERROR: %x\r\n"), result );
 		return false;
 	}
 
 	result = this->pFactory->CreateEncoder( GUID_ContainerFormatPng, NULL, &this->pBitmapEncoder );
 	if( !SUCCEEDED(result) )
 	{
-		printf("WindowsImagingComponent::ConvertBitmapToPng()::CreateEncoder(); FATAL ERROR: %x\r\n", result );
+		logger.printf( _T("WindowsImagingComponent::ConvertBitmapToPng()::CreateEncoder(); FATAL ERROR: %x\r\n"), result );
 		return false;
 	}
 
 	result = this->pBitmapEncoder->Initialize( this->pStream, WICBitmapEncoderNoCache );
 	if( !SUCCEEDED(result) )
 	{
-		printf("WindowsImagingComponent::ConvertBitmapToPng()::Initialize(); FATAL ERROR: %x\r\n", result );
+		logger.printf( _T("WindowsImagingComponent::ConvertBitmapToPng()::Initialize(); FATAL ERROR: %x\r\n"), result );
 		return false;
 	}
 
 	result = this->pBitmapEncoder->CreateNewFrame( &this->pBitmapFrame, NULL ); //propertybag is NULL because it's complex
 	if( !SUCCEEDED(result) )
 	{
-		printf("WindowsImagingComponent::ConvertBitmapToPng()::CreateNewFrame(); FATAL ERROR: %x\r\n", result );
+		logger.printf( _T("WindowsImagingComponent::ConvertBitmapToPng()::CreateNewFrame(); FATAL ERROR: %x\r\n"), result );
 		return false;
 	}
 
 	result = this->pBitmapFrame->Initialize( NULL ); //initializing with no propertybag
 	if( !SUCCEEDED(result) )
 	{
-		printf("WindowsImagingComponent::ConvertBitmapToPng()::Initialize( NULL ); FATAL ERROR: %x\r\n", result );
+		logger.printf( _T("WindowsImagingComponent::ConvertBitmapToPng()::Initialize( NULL ); FATAL ERROR: %x\r\n"), result );
 		return false;
 	}
 
 	result = this->pFactory->CreateBitmapFromHBITMAP( hbmp, NULL, WICBitmapIgnoreAlpha, &this->pWicBitmap );
 	if( !SUCCEEDED(result) )
 	{
-		printf("WindowsImagingComponent::ConvertBitmapToPng()::CreateBitmapFromHBITMAP(); FATAL ERROR: %x\r\n", result );
+		logger.printf( _T("WindowsImagingComponent::ConvertBitmapToPng()::CreateBitmapFromHBITMAP(); FATAL ERROR: %x\r\n"), result );
 		return false;
 	}
 
@@ -81,21 +82,21 @@ bool WindowsImagingComponent::ConvertBitmapToPng( HBITMAP hbmp, unsigned int wid
 	result = this->pBitmapFrame->WriteSource( this->pWicBitmap, &wicrect );
 	if( !SUCCEEDED(result) )
 	{
-		printf("WindowsImagingComponent::ConvertBitmapToPng()::WriteSource(); FATAL ERROR: %x\r\n", result );
+		logger.printf( _T("WindowsImagingComponent::ConvertBitmapToPng()::WriteSource(); FATAL ERROR: %x\r\n"), result );
 		return false;
 	}
 
 	result = this->pBitmapFrame->Commit();
 	if( !SUCCEEDED(result) )
 	{
-		printf("WindowsImagingComponent::ConvertBitmapToPng()::pBItmapFrame->Commit(); FATAL ERROR: %x\r\n", result );
+		logger.printf( _T("WindowsImagingComponent::ConvertBitmapToPng()::pBItmapFrame->Commit(); FATAL ERROR: %x\r\n"), result );
 		return false;
 	}
 
 	result = this->pBitmapEncoder->Commit();
 	if( !SUCCEEDED(result) )
 	{
-		printf("WindowsImagingComponent::ConvertBitmapToPng()::pBitmapEncoder->Commit(); FATAL ERROR: %x\r\n", result );
+		logger.printf( _T("WindowsImagingComponent::ConvertBitmapToPng()::pBitmapEncoder->Commit(); FATAL ERROR: %x\r\n"), result );
 		return false;
 	}
 
@@ -132,35 +133,35 @@ bool WindowsImagingComponent::CaptureScreenRegion( unsigned int x, unsigned int 
 	desktop_dc = GetDC( desktop_window );
 	if( !desktop_dc )
 	{
-		printf("Capture()::GetDC( desktop_window ); FATAL ERROR\r\n");
+		logger.printf( _T("Capture()::GetDC( desktop_window ); FATAL ERROR\r\n"));
 		return false;
 	}
 
 	capture_dc = CreateCompatibleDC( desktop_dc );
 	if( !capture_dc )
 	{
-		printf("Capture()::CreateCompatibleDC( desktop_dc ); FATAL ERROR\r\n");
+		logger.printf( _T("Capture()::CreateCompatibleDC( desktop_dc ); FATAL ERROR\r\n"));
 		return false;
 	}
 
 	hbmp = CreateCompatibleBitmap( desktop_dc, width, height );
 	if( !hbmp )
 	{
-		printf("Capture()::CreateCompatibleBitmap( desktop_dc, width, height ); FATAL ERROR\r\n");
+		logger.printf( _T("Capture()::CreateCompatibleBitmap( desktop_dc, width, height ); FATAL ERROR\r\n"));
 		return false;
 	}
 
 	HGDIOBJ hgdiobj_return = SelectObject( capture_dc, hbmp );
 	if( hgdiobj_return == NULL || hgdiobj_return == HGDI_ERROR )
 	{
-		printf("Capture()::SelectObject( capture_dc, hbmp ); FATAL ERROR\r\n");
+		logger.printf( _T("Capture()::SelectObject( capture_dc, hbmp ); FATAL ERROR\r\n"));
 		return false;
 	}
 
 	errmsg = BitBlt( capture_dc, 0, 0, width, height, desktop_dc, x, y, SRCCOPY|CAPTUREBLT );
 	if( !errmsg )
 	{
-		printf("Capture()::BitBlt( capture_dc, 0, 0, width, height, desktop_dc, x, y, SRCCOPY|CAPTUREBLT ); FATAL ERROR: %x\r\n", GetLastError() );
+		logger.printf( _T("Capture()::BitBlt( capture_dc, 0, 0, width, height, desktop_dc, x, y, SRCCOPY|CAPTUREBLT ); FATAL ERROR: %x\r\n"), GetLastError() );
 		return false;
 	}
 
