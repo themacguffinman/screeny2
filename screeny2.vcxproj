@@ -79,11 +79,13 @@
     <ClCompile Include="Errors.cpp" />
     <ClCompile Include="Imaging.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="WindowManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Errors.h" />
     <ClInclude Include="Imaging.h" />
     <ClInclude Include="Main.h" />
+    <ClInclude Include="WindowManager.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
