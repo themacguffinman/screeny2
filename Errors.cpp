@@ -32,6 +32,9 @@ bool Logger::printf( const TCHAR *msg, ... )
 	va_start( arglist, msg );
 	_vstprintf( formatted_str, msg, arglist );
 
+	//temporary debugging measure
+	WriteConsole( GetStdHandle(STD_OUTPUT_HANDLE), formatted_str, _tcslen(formatted_str), &dwRetLen, NULL );
+
 	if( !WriteFile( this->logfile, formatted_str, _tcslen(formatted_str) * sizeof(TCHAR), &dwRetLen, NULL ) )
 	{
 		TCHAR errstr[256];

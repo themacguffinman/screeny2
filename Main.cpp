@@ -12,7 +12,7 @@ void main()
 	result = CoInitializeEx( NULL, COINIT_SPEED_OVER_MEMORY );
 	if( !SUCCEEDED(result) )
 	{
-		printf("CoInitializeEx(); FATAL ERROR: %x\r\n", result );
+		logger.printf( _T("CoInitializeEx(); FATAL ERROR: %x\r\n"), result );
 	}
 
 	WindowsImagingComponent wic;
@@ -22,7 +22,7 @@ void main()
 	wic.CaptureScreenRegion( 0, 0, 500, 500 );
 	time = GetTickCount() - time;
 
-	printf("Capture Time: %d\r\n", time );
+	logger.printf( _T("Capture Time: %d\r\n"), time );
 
 	
 
