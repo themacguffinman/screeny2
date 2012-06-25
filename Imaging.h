@@ -40,11 +40,15 @@ struct WindowsImagingComponent
 		if( this->pBitmapEncoder )
 			this->pBitmapEncoder->Release();
 
-		if( this->pFactory )
-			this->pFactory->Release();
+		//Unfortunately, the destructor is called after COM is uninitialized in the main method
+		//IWICFactory cannot be released in the destructor
+		/*if( this->pFactory )
+			this->pFactory->Release();*/
 	}
 
 	bool Initialize();
 	bool ConvertBitmapToPng( HBITMAP hbmp, unsigned int width, unsigned int height );
 	bool CaptureDCRegion( HDC source_dc, unsigned int x, unsigned int y, unsigned int width, unsigned int height );
 };
+
+extern WindowsImagingComponent wic;

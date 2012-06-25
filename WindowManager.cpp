@@ -1,27 +1,44 @@
 #include "WindowManager.h"
 #include "Errors.h"
 
-bool WindowManager::Initialize( WNDPROC windowproc )
+WindowManager main_window;
+
+bool RegisterWindowClass( WNDCLASSEX *wndclass, WNDPROC window_procedure )
 {
-	this->wndclass.cbSize = sizeof( WNDCLASSEX );
-	this->wndclass.lpszClassName = _T("MainWClass");
-	this->wndclass.lpfnWndProc = windowproc;
-	this->wndclass.hInstance = GetModuleHandle( NULL );
-	//this->wndclass.style = CS_DROPSHADOW;
+	memset( wndclass, NULL, sizeof( WNDCLASSEX ) );
+
+	wndclass->cbSize = sizeof( WNDCLASSEX );
+	wndclass->lpszClassName = _T("ScreenyWindowClass");
+	wndclass->lpfnWndProc = window_procedure;
+	wndclass->hInstance = GetModuleHandle( NULL );
+	//wndclass->style = CS_DROPSHADOW;
 	//LoadIconMetric( GetModuleHandle(NULL), MAKEINTRESOURCEW( IDI_ICON1 ), LIM_LARGE, &(wnd->hIcon) );
 
-	if( NULL == RegisterClassEx(&this->wndclass) )
+	if( RegisterClassEx( wndclass ) == NULL )
 	{
-		logger.printf( _T("WindowManager::Initialize()::CreateMainWindow()::RegisterClassex() error: %d\r\n"), GetLastError() );
+		logger.printf( _T("RegisterWindowClass()::RegisterClassEx() error: %d\r\n"), GetLastError() );
 		return false;
 	}
 
-	this->main_window = CreateWindowEx
+	return true;
+}
+
+bool WindowManager::Initialize( WNDCLASSEX wndclass_in )
+{
+	WNDCLASSEX temp;
+	if( GetClassInfoEx( GetModuleHandle(NULL), wndclass_in.lpszClassName, &temp ) == false )
+	{
+		logger.printf( _T("WindowManager::Initialize() error: Window Class is not registered!\r\n") );
+		return false;
+	}
+	this->wndclass = wndclass_in;
+
+	this->window = CreateWindowEx
 		(
 		WS_EX_TOPMOST, //extended styles
 		this->wndclass.lpszClassName, //class name
 		_T("MainWindow"), //window name
-		WS_POPUP, //style tags
+		WS_OVERLAPPED | WS_VISIBLE, //style tags
 		100, //horizontal position
 		100, //vertical position
 		900, //width
@@ -31,8 +48,7 @@ bool WindowManager::Initialize( WNDPROC windowproc )
 		GetModuleHandle(NULL), //some HINSTANCE pointer
 		NULL //Create Window Data?
 		);
-
-	if( this->main_window == NULL )
+	if( this->window == NULL )
 	{
 		logger.printf( _T("WindowManager::Initialize()::CreateMainWindow()::CreateWindowEx() error: %d\r\n"), GetLastError() );
 		return false;

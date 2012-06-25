@@ -1,6 +1,8 @@
 #include "Imaging.h"
 #include "Errors.h"
 
+WindowsImagingComponent wic;
+
 bool CaptureScreen( HDC *pcapture_dc, HBITMAP *phbmp )
 {
 	int errmsg;
@@ -17,21 +19,21 @@ bool CaptureScreen( HDC *pcapture_dc, HBITMAP *phbmp )
 	desktop_dc = GetDC( desktop_window );
 	if( !desktop_dc )
 	{
-		logger.printf( _T("CaptureScreen()::GetDC( desktop_window ); FATAL ERROR\r\n"));
+		logger.printf( _T("CaptureScreen()::GetDC(); FATAL ERROR\r\n"));
 		return false;
 	}
 
 	capture_dc = CreateCompatibleDC( desktop_dc );
 	if( !capture_dc )
 	{
-		logger.printf( _T("CaptureScreen()::CreateCompatibleDC( desktop_dc ); FATAL ERROR\r\n"));
+		logger.printf( _T("CaptureScreen()::CreateCompatibleDC(); FATAL ERROR\r\n"));
 		return false;
 	}
 
 	hbmp = CreateCompatibleBitmap( desktop_dc, desktop_rect.right-desktop_rect.left, desktop_rect.bottom-desktop_rect.top );
 	if( !hbmp )
 	{
-		logger.printf( _T("CaptureScreen()::CreateCompatibleBitmap( desktop_dc, width, height ); FATAL ERROR\r\n"));
+		logger.printf( _T("CaptureScreen()::CreateCompatibleBitmap(); FATAL ERROR\r\n"));
 		return false;
 	}
 
@@ -45,7 +47,7 @@ bool CaptureScreen( HDC *pcapture_dc, HBITMAP *phbmp )
 	errmsg = BitBlt( capture_dc, 0, 0, desktop_rect.right-desktop_rect.left, desktop_rect.bottom-desktop_rect.top, desktop_dc, 0, 0, SRCCOPY|CAPTUREBLT );
 	if( !errmsg )
 	{
-		logger.printf( _T("CaptureScreen()::BitBlt( capture_dc, 0, 0, width, height, desktop_dc, x, y, SRCCOPY|CAPTUREBLT ); FATAL ERROR: %x\r\n"), GetLastError() );
+		logger.printf( _T("CaptureScreen()::BitBlt(); FATAL ERROR: %x\r\n"), GetLastError() );
 		return false;
 	}
 

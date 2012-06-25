@@ -1,17 +1,29 @@
 #include "Main.h"
 
+bool RegisterWindowClass( WNDCLASSEX *wndclass, WNDPROC window_procedure );
+
 struct WindowManager
 {
 	WNDCLASSEX wndclass;
-	HWND main_window;
+	HWND window;
 	HFONT primary_font;
 
 	WindowManager()
 	{
-		memset( &this->wndclass, NULL, sizeof( WNDCLASSEX ) );
-		main_window = NULL;
-		primary_font = NULL;
+		this->window = NULL;
+		this->primary_font = NULL;
+	}
+	~WindowManager()
+	{
+		//UnregisterClass should be called in the main method
+
+		//DestroyWindow should be called in WM_CLOSE in the windows procedure
+
+		if( this->primary_font )
+			DeleteObject( this->primary_font );
 	}
 
-	bool Initialize( WNDPROC windowproc );
+	bool Initialize( WNDCLASSEX wndclass_in );
 };
+
+extern WindowManager main_window;
