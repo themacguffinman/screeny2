@@ -23,7 +23,7 @@ struct WindowManager
 			DeleteObject( this->primary_font );
 	}
 
-	bool Initialize( WNDCLASSEX wndclass_in );
+	bool Initialize( WNDCLASSEX wndclass_in, unsigned int x, unsigned int y, unsigned int width, unsigned int height );
 };
 
 extern WindowManager main_window;

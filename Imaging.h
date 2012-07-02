@@ -3,6 +3,7 @@
 #include <wincodecsdk.h>
 #pragma comment(lib, "WindowsCodecs.lib")
 
+bool Whiten( HDC source_dc, HBITMAP source_bitmap, unsigned int width, unsigned int height, HBITMAP *pwhitened_bitmap );
 bool CaptureScreen( HDC *pcapture_dc, HBITMAP *phbmp );
 
 struct WindowsImagingComponent
@@ -48,7 +49,7 @@ struct WindowsImagingComponent
 
 	bool Initialize();
 	bool ConvertBitmapToPng( HBITMAP hbmp, unsigned int width, unsigned int height );
-	bool CaptureDCRegion( HDC source_dc, unsigned int x, unsigned int y, unsigned int width, unsigned int height );
+	bool CaptureDCRegion( HDC source_dc, HBITMAP source_bitmap, unsigned int x, unsigned int y, unsigned int width, unsigned int height );
 };
 
 extern WindowsImagingComponent wic;

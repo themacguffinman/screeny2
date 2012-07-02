@@ -23,7 +23,7 @@ bool Logger::Initialize()
 	return true;
 }
 
-bool Logger::printf( const TCHAR *msg, ... )
+bool _cdecl Logger::printf( const TCHAR *msg, ... )
 {
 	TCHAR formatted_str[512];
 	va_list arglist;

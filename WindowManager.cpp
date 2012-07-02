@@ -23,7 +23,7 @@ bool RegisterWindowClass( WNDCLASSEX *wndclass, WNDPROC window_procedure )
 	return true;
 }
 
-bool WindowManager::Initialize( WNDCLASSEX wndclass_in )
+bool WindowManager::Initialize( WNDCLASSEX wndclass_in, unsigned int x, unsigned int y, unsigned int width, unsigned int height )
 {
 	WNDCLASSEX temp;
 	if( GetClassInfoEx( GetModuleHandle(NULL), wndclass_in.lpszClassName, &temp ) == false )
@@ -35,14 +35,14 @@ bool WindowManager::Initialize( WNDCLASSEX wndclass_in )
 
 	this->window = CreateWindowEx
 		(
-		WS_EX_TOPMOST, //extended styles
+		/*WS_EX_TOPMOST*/NULL, //extended styles
 		this->wndclass.lpszClassName, //class name
 		_T("MainWindow"), //window name
-		WS_OVERLAPPED | WS_VISIBLE, //style tags
-		100, //horizontal position
-		100, //vertical position
-		900, //width
-		600, //height
+		WS_POPUP, //style tags
+		x, //horizontal position
+		y, //vertical position
+		width, //width
+		height, //height
 		NULL, //parent window
 		NULL, //class menu
 		GetModuleHandle(NULL), //some HINSTANCE pointer
@@ -53,6 +53,8 @@ bool WindowManager::Initialize( WNDCLASSEX wndclass_in )
 		logger.printf( _T("WindowManager::Initialize()::CreateMainWindow()::CreateWindowEx() error: %d\r\n"), GetLastError() );
 		return false;
 	}
+
+	ShowWindow( this->window, SW_SHOW );
 
 	//SendMessage( this->main_window, WM_SETFONT, (WPARAM)this->primary_font, (LPARAM)TRUE );
 

@@ -88,7 +88,7 @@ struct Logger
 	}
 
 	bool Initialize();
-	bool printf( const TCHAR *msg, ... );
+	bool _cdecl printf( const TCHAR *msg, ... );
 };
 
 extern Logger logger;
