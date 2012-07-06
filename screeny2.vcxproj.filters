@@ -54,5 +54,8 @@
     <None Include="screeny_icon.ico">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="generic_picture.ico">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -96,6 +96,7 @@
     <ResourceCompile Include="screeny2.rc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="generic_picture.ico" />
     <None Include="screeny_icon.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

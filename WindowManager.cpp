@@ -49,6 +49,27 @@ bool RegisterTrayIcon( HWND hwnd, HICON tray_icon, TCHAR *tooltip_msg, NOTIFYICO
 	return true;
 }
 
+bool ShowBalloon( NOTIFYICONDATA nid, HICON balloon_icon, TCHAR *title, TCHAR *msg )
+{
+	nid.uFlags = NIF_INFO;
+	nid.dwInfoFlags = NIIF_USER|NIIF_LARGE_ICON;
+	_tcscpy( nid.szInfoTitle, title );
+	_tcscpy( nid.szInfo, msg );
+	nid.hBalloonIcon = balloon_icon;
+
+	if( Shell_NotifyIcon(NIM_SETVERSION, &nid) == false )
+	{
+		logger.printf( _T("ShowBalloon()::Shell_NotifyIcon(NIM_SETVERSION) error\r\n") );
+		return false;
+	}
+
+	if( Shell_NotifyIcon(NIM_MODIFY, &nid) == false )
+	{
+		logger.printf( _T("ShowBalloon()::Shell_NotifyIcon(NIM_MODIFY) error\r\n") );
+		return false;
+	}
+}
+
 bool WindowManager::Initialize( WNDCLASSEX wndclass_in, unsigned int x, unsigned int y, unsigned int width, unsigned int height )
 {
 	WNDCLASSEX temp;

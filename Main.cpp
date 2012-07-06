@@ -21,6 +21,8 @@ RECT desktop_rect = {0};
 NOTIFYICONDATA main_nid = {0};
 
 HICON systray_icon = NULL;
+HICON imgtype_icon = NULL;
+
 HDC desktop_capture_dc = NULL;
 HBITMAP desktop_capture_bitmap = NULL;
 HBRUSH main_window_brush = NULL;
@@ -124,8 +126,15 @@ void main()
 		logger.printf( _T("GetSysColorBrush() FATAL ERROR\r\n") );
 		Sleep( INFINITE );
 	}
-
+	
+	//Load Icons
 	result = LoadIconMetric( GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_SYSTRAY_NORMAL), LIM_SMALL, &systray_icon );
+	if( !SUCCEEDED(result) )
+	{
+		logger.printf( _T("LoadIconMetric() FATAL ERROR: %d\r\n"), result );
+		Sleep( INFINITE );
+	}
+	result = LoadIconMetric( GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_GENERIC_PICTURE), LIM_LARGE, &imgtype_icon );
 	if( !SUCCEEDED(result) )
 	{
 		logger.printf( _T("LoadIconMetric() FATAL ERROR: %d\r\n"), result );
@@ -144,6 +153,7 @@ void main()
 	}
 
 	RegisterTrayIcon( main_window.window, systray_icon, _T("Screeny"), &main_nid );
+	//ShowBalloon( main_nid, imgtype_icon, _T("title is awesome"), _T("the awesome message is awesome and yes shit") );
 
 	//Initialize COM
 	result = CoInitializeEx( NULL, COINIT_SPEED_OVER_MEMORY );
@@ -179,6 +189,8 @@ void main()
 		wic.pFactory->Release();
 	CoUninitialize();
 	UnregisterClass( screeny_wnd_class.lpszClassName, GetModuleHandle(NULL) );
+	if( imgtype_icon )
+		DestroyIcon( imgtype_icon );
 	if( systray_icon )
 		DestroyIcon( systray_icon );
 

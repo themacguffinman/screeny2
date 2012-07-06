@@ -2,6 +2,7 @@
 
 bool RegisterWindowClass( WNDCLASSEX *wndclass, WNDPROC window_procedure );
 bool RegisterTrayIcon( HWND hwnd, HICON tray_icon, TCHAR *tooltip_msg, NOTIFYICONDATA *nid );
+bool ShowBalloon( NOTIFYICONDATA nid, HICON balloon_icon, TCHAR *title, TCHAR *msg );
 
 struct WindowManager
 {
