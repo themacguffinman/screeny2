@@ -1,6 +1,7 @@
 #include "Main.h"
 
 bool RegisterWindowClass( WNDCLASSEX *wndclass, WNDPROC window_procedure );
+bool RegisterTrayIcon( HWND hwnd, HICON tray_icon, TCHAR *tooltip_msg, NOTIFYICONDATA *nid );
 
 struct WindowManager
 {

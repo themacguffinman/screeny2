@@ -2,9 +2,25 @@
 #include "Imaging.h"
 #include "Errors.h"
 #include "WindowManager.h"
+#include "resource.h"
+
+#pragma comment(lib, "Comctl32.lib")
+
+#if defined _M_IX86
+#pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='x86' publicKeyToken='6595b64144ccf1df' language='*'\"")
+#elif defined _M_IA64
+#pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='ia64' publicKeyToken='6595b64144ccf1df' language='*'\"")
+#elif defined _M_X64
+#pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='amd64' publicKeyToken='6595b64144ccf1df' language='*'\"")
+#else
+#pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
+#endif
 
 RECT desktop_rect = {0};
 
+NOTIFYICONDATA main_nid = {0};
+
+HICON systray_icon = NULL;
 HDC desktop_capture_dc = NULL;
 HBITMAP desktop_capture_bitmap = NULL;
 HBRUSH main_window_brush = NULL;
@@ -78,6 +94,7 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		break;
 
 	case WM_DESTROY:
+		Shell_NotifyIcon(NIM_DELETE, &main_nid);
 		PostQuitMessage(0);
 		break;
 
@@ -108,6 +125,13 @@ void main()
 		Sleep( INFINITE );
 	}
 
+	result = LoadIconMetric( GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_SYSTRAY_NORMAL), LIM_SMALL, &systray_icon );
+	if( !SUCCEEDED(result) )
+	{
+		logger.printf( _T("LoadIconMetric() FATAL ERROR: %d\r\n"), result );
+		Sleep( INFINITE );
+	}
+
 	//Initialize Main Window
 	WNDCLASSEX screeny_wnd_class = {0};
 	RegisterWindowClass( &screeny_wnd_class, MainWindowProc );
@@ -118,6 +142,8 @@ void main()
 		logger.printf( _T("RegisterHotKey() error: %x\r\n"), GetLastError() );
 		Sleep( INFINITE );
 	}
+
+	RegisterTrayIcon( main_window.window, systray_icon, _T("Screeny"), &main_nid );
 
 	//Initialize COM
 	result = CoInitializeEx( NULL, COINIT_SPEED_OVER_MEMORY );
@@ -144,24 +170,17 @@ void main()
 
 	//CLEANUP
 	if( main_window_brush )
-	{
 		DeleteObject( main_window_brush );
-		main_window_brush = NULL;
-	}
 	if( desktop_capture_bitmap )
-	{
 		DeleteObject( desktop_capture_bitmap );
-		desktop_capture_bitmap = NULL;
-	}
 	if( desktop_capture_dc )
-	{
 		DeleteDC( desktop_capture_dc );
-		desktop_capture_dc = NULL;
-	}
 	if( wic.pFactory )
 		wic.pFactory->Release();
 	CoUninitialize();
 	UnregisterClass( screeny_wnd_class.lpszClassName, GetModuleHandle(NULL) );
+	if( systray_icon )
+		DestroyIcon( systray_icon );
 
 	//Sleep( INFINITE );
 }

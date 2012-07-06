@@ -23,6 +23,32 @@ bool RegisterWindowClass( WNDCLASSEX *wndclass, WNDPROC window_procedure )
 	return true;
 }
 
+bool RegisterTrayIcon( HWND hwnd, HICON tray_icon, TCHAR *tooltip_msg, NOTIFYICONDATA *nid )
+{
+	nid->cbSize = sizeof(NOTIFYICONDATA);
+	nid->hWnd = hwnd;
+	nid->uID = 0;
+	nid->uFlags = NIF_MESSAGE|NIF_ICON|NIF_TIP|NIF_SHOWTIP;
+	nid->uCallbackMessage = 0;
+	nid->hIcon = tray_icon;
+	_tcscpy( nid->szTip, tooltip_msg );
+	nid->uVersion = NOTIFYICON_VERSION_4;
+
+	if( Shell_NotifyIcon(NIM_ADD, nid) == false )
+	{
+		logger.printf( _T("RegisterTrayIcon()::Shell_NotifyIcon(NIM_ADD) error\r\n") );
+		return false;
+	}
+
+	if( Shell_NotifyIcon(NIM_SETVERSION, nid) == false )
+	{
+		logger.printf( _T("RegisterTrayIcon()::Shell_NotifyIcon(NIM_SETVERSION) error\r\n") );
+		return false;
+	}
+
+	return true;
+}
+
 bool WindowManager::Initialize( WNDCLASSEX wndclass_in, unsigned int x, unsigned int y, unsigned int width, unsigned int height )
 {
 	WNDCLASSEX temp;
@@ -54,7 +80,7 @@ bool WindowManager::Initialize( WNDCLASSEX wndclass_in, unsigned int x, unsigned
 		return false;
 	}
 
-	ShowWindow( this->window, SW_SHOW );
+	//ShowWindow( this->window, SW_SHOW );
 
 	//SendMessage( this->main_window, WM_SETFONT, (WPARAM)this->primary_font, (LPARAM)TRUE );
 

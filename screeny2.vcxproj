@@ -89,7 +89,14 @@
     <ClInclude Include="Errors.h" />
     <ClInclude Include="Imaging.h" />
     <ClInclude Include="Main.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="WindowManager.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="screeny2.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="screeny_icon.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
