@@ -25,23 +25,62 @@ HICON imgtype_icon = NULL;
 
 HDC desktop_capture_dc = NULL;
 HBITMAP desktop_capture_bitmap = NULL;
-HBRUSH main_window_brush = NULL;
+HDC overlay_dc = NULL;
+HBITMAP overlay_bitmap = NULL;
+bool click_selection = false;
+unsigned int box_x1 = 0;
+unsigned int box_y1 = 0;
+unsigned int box_x2 = 0;
+unsigned int box_y2 = 0;
 
 LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 {
 	switch( uMsg )
 	{
+	case WM_KILLFOCUS:
+		printf("killfocus\r\n");
+		break;
+
+	case WM_LBUTTONUP:
+		/*selection_box.left = box_x1 < box_x2 ? box_x1 : box_x2;
+		selection_box.top = box_y1 < box_y2 ? box_y1 : box_y2;
+		selection_box.right = box_x1 > box_x2 ? box_x1 : box_x2;
+		selection_box.bottom = box_y1 > box_y2 ? box_y1 : box_y2;*/
+
+		printf("Start: %d, %d \t End: %d, %d\r\n", box_x1, box_y1, box_x2, box_y2 );
+		click_selection = false;
+		break;
+
+	case WM_MOUSEMOVE:
+		if( wParam == MK_LBUTTON )
+		{
+			//set starting point
+			if( click_selection == false )
+			{
+				click_selection = true;
+				box_x1 = LOWORD(lParam);
+				box_y1 = HIWORD(lParam);
+			}
+
+			//set ending point
+			box_x2 = LOWORD(lParam);
+			box_y2 = HIWORD(lParam);
+
+			InvalidateRect( hwnd, NULL, FALSE );
+
+			printf("mousedown\r\n");
+		}
+		break;
+
 	case WM_HOTKEY:
 		switch( wParam )
 		{
 		case 0:
 			printf("WM_HOTKEY\r\n");
 
-			if( main_window_brush )
-			{
-				DeleteObject( main_window_brush );
-				main_window_brush = NULL;
-			}
+			
+			ShowWindow( hwnd, SW_SHOW );
+
 			if( desktop_capture_bitmap )
 			{
 				DeleteObject( desktop_capture_bitmap );
@@ -53,24 +92,17 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 				desktop_capture_dc = NULL;
 			}
 
-			HBITMAP overlay_bitmap;
-
 			CaptureScreen( &desktop_capture_dc, &desktop_capture_bitmap );
 
 			Whiten( desktop_capture_dc, desktop_capture_bitmap, desktop_rect.right-desktop_rect.left, desktop_rect.bottom-desktop_rect.top, &overlay_bitmap );
-			
-			//main_window_brush = CreatePatternBrush( desktop_capture_bitmap );
-			main_window_brush = CreatePatternBrush( overlay_bitmap );
-			if( main_window_brush == NULL )
-			{
-				logger.printf( _T("CreatePatternBrush() error: %x\r\n"), GetLastError() );
-				Sleep( INFINITE );
-			}
+
+			overlay_dc = CreateCompatibleDC( desktop_capture_dc );
+			SelectObject( overlay_dc, overlay_bitmap );
+
 			InvalidateRect( hwnd, NULL, FALSE );
-			UpdateWindow(hwnd);
 
 			//Need to make CaptureDCRegion return a pointer
-			wic.CaptureDCRegion( desktop_capture_dc, desktop_capture_bitmap, 30, 50, 1200, 800 );
+			//wic.CaptureDCRegion( desktop_capture_dc, desktop_capture_bitmap, 30, 50, 1200, 800 );
 
 			
 
@@ -80,11 +112,19 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 	case WM_PAINT:
 		printf("wm_paint\r\n");
 
-		if( FillRect( GetDC(hwnd), &desktop_rect, main_window_brush ) == false )
-		{
-			logger.printf( _T("MainWindowProc()::FillRect(); failed\r\n") );
-			break;
-		}
+		//Draw background
+		BitBlt( GetDC(hwnd), 0, 0, desktop_rect.right-desktop_rect.left, desktop_rect.bottom-desktop_rect.top, overlay_dc, 0, 0, SRCCOPY );
+
+		//Draw overlay
+		BitBlt( GetDC(hwnd),
+			box_x1 < box_x2 ? box_x1 : box_x2, //dest x-coordinates
+			box_y1 < box_y2 ? box_y1 : box_y2, //dest y-coordinates
+			box_x1 > box_x2 ? box_x1 - box_x2 : box_x2 - box_x1, //width
+			box_y1 > box_y2 ? box_y1 - box_y2 : box_y2 - box_y1, //height
+			desktop_capture_dc,
+			box_x1 < box_x2 ? box_x1 : box_x2, //source x-coordinates
+			box_y1 < box_y2 ? box_y1 : box_y2, //source y-coordinates
+			SRCCOPY );
 		break;
 	case WM_CLOSE:
 		if( DestroyWindow(hwnd) == false )
@@ -120,13 +160,6 @@ void main()
 
 
 	GetWindowRect( GetDesktopWindow(), &desktop_rect );
-
-	main_window_brush = GetSysColorBrush( COLOR_GRAYTEXT );
-	if( main_window_brush == NULL )
-	{
-		logger.printf( _T("GetSysColorBrush() FATAL ERROR\r\n") );
-		Sleep( INFINITE );
-	}
 	
 	//Load Icons
 	result = LoadIconMetric( GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_SYSTRAY_NORMAL), LIM_SMALL, &systray_icon );
@@ -180,8 +213,6 @@ void main()
 
 
 	//CLEANUP
-	if( main_window_brush )
-		DeleteObject( main_window_brush );
 	if( desktop_capture_bitmap )
 		DeleteObject( desktop_capture_bitmap );
 	if( desktop_capture_dc )

@@ -93,12 +93,12 @@ bool CaptureScreen( HDC *pcapture_dc, HBITMAP *phbmp )
 		return false;
 	}
 
-	hgdiobj_return = SelectObject( capture_dc, hgdiobj_return );
+	/*hgdiobj_return = SelectObject( capture_dc, hgdiobj_return );
 	if( hgdiobj_return == NULL || hgdiobj_return == HGDI_ERROR )
 	{
 		logger.printf( _T("CaptureScreen()::SelectObject( capture_dc, hgdiobj_return ); FATAL ERROR\r\n"));
 		return false;
-	}
+	}*/
 
 	*pcapture_dc = capture_dc;
 	*phbmp = hbmp;
