@@ -101,7 +101,7 @@ bool WindowManager::Initialize( WNDCLASSEX wndclass_in, unsigned int x, unsigned
 		return false;
 	}
 
-	//ShowWindow( this->window, SW_SHOW );
+	ShowWindow( this->window, SW_SHOW );
 
 	//SendMessage( this->main_window, WM_SETFONT, (WPARAM)this->primary_font, (LPARAM)TRUE );
 

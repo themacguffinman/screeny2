@@ -59,7 +59,8 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 
 			Whiten( desktop_capture_dc, desktop_capture_bitmap, desktop_rect.right-desktop_rect.left, desktop_rect.bottom-desktop_rect.top, &overlay_bitmap );
 			
-			main_window_brush = CreatePatternBrush( desktop_capture_bitmap );
+			//main_window_brush = CreatePatternBrush( desktop_capture_bitmap );
+			main_window_brush = CreatePatternBrush( overlay_bitmap );
 			if( main_window_brush == NULL )
 			{
 				logger.printf( _T("CreatePatternBrush() error: %x\r\n"), GetLastError() );

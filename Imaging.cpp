@@ -22,10 +22,10 @@ bool Whiten( HDC source_dc, HBITMAP source_bitmap, unsigned int width, unsigned 
 		return false;
 	}
 
-	result = GetDIBits( source_dc, source_bitmap, 0, height, pwhitened_data, &whitened_bitmapinfo, DIB_RGB_COLORS );
+	result = GetBitmapBits( source_bitmap, width * 4 * height, pwhitened_data );
 	if( result == NULL )
 	{
-		logger.printf( _T("Whiten()::GetDIBits(); FATAL ERROR\r\n") );
+		logger.printf( _T("Whiten()::GetBitmapBits(); FATAL ERROR\r\n") );
 		return false;
 	}
 
