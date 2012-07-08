@@ -136,7 +136,7 @@ bool WindowsImagingComponent::Initialize()
 	return true;
 }
 
-bool WindowsImagingComponent::ConvertBitmapToPng( HBITMAP hbmp, unsigned int width, unsigned int height )
+bool WindowsImagingComponent::ConvertBitmapToPng( HBITMAP hbmp, unsigned int width, unsigned int height, BYTE **ppimage_buffer )
 {
 	HRESULT result;
 
@@ -153,12 +153,21 @@ bool WindowsImagingComponent::ConvertBitmapToPng( HBITMAP hbmp, unsigned int wid
 		return false;
 	}
 
-	result = this->pStream->InitializeFromFilename( TEXT("captureoutput.png"), GENERIC_WRITE );
+	*ppimage_buffer = (BYTE *)VirtualAlloc( NULL, PNG_BUFFER_SIZE, MEM_COMMIT|MEM_RESERVE, PAGE_READWRITE );
+
+	result = this->pStream->InitializeFromMemory( *ppimage_buffer, PNG_BUFFER_SIZE );
+	if( !SUCCEEDED(result) )
+	{
+		logger.printf( _T("WindowsImagingComponent::ConvertBitmapToPng()::InitializeFromMemory(); FATAL ERROR: %x\r\n"), result );
+		return false;
+	}
+
+	/*result = this->pStream->InitializeFromFilename( TEXT("captureoutput.png"), GENERIC_WRITE );
 	if( !SUCCEEDED(result) )
 	{
 		logger.printf( _T("WindowsImagingComponent::ConvertBitmapToPng()::InitializeFromFilename(); FATAL ERROR: %x\r\n"), result );
 		return false;
-	}
+	}*/
 
 	result = this->pFactory->CreateEncoder( GUID_ContainerFormatPng, NULL, &this->pBitmapEncoder );
 	if( !SUCCEEDED(result) )
@@ -240,7 +249,7 @@ bool WindowsImagingComponent::ConvertBitmapToPng( HBITMAP hbmp, unsigned int wid
 	return true;
 }
 
-bool WindowsImagingComponent::CaptureDCRegion( HDC source_dc, HBITMAP source_bitmap, unsigned int x, unsigned int y, unsigned int width, unsigned int height )
+bool WindowsImagingComponent::CaptureDCRegion( HDC source_dc, HBITMAP source_bitmap, unsigned int x, unsigned int y, unsigned int width, unsigned int height, BYTE **ppimage_buffer )
 {
 	int errmsg;
 
@@ -284,7 +293,7 @@ bool WindowsImagingComponent::CaptureDCRegion( HDC source_dc, HBITMAP source_bit
 		return false;
 	}
 
-	this->ConvertBitmapToPng( hbmp, width, height );
+	this->ConvertBitmapToPng( hbmp, width, height, ppimage_buffer );
 
 	//RELEASE THINGS
 	capture_hgdiobj_return = SelectObject( capture_dc, capture_hgdiobj_return );

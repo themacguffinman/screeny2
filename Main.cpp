@@ -27,6 +27,8 @@ HICON imgtype_icon = NULL;
 HCURSOR arrow_cursor = NULL;
 HCURSOR crosshair_cursor = NULL;
 
+BYTE *pimage_buffer = NULL;
+
 HDC backbuffer_dc = NULL;
 HGDIOBJ backbuffer_dc_deselectobj = NULL;
 HBITMAP backbuffer_bitmap = NULL;
@@ -57,23 +59,17 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		}
 		break;
 
-	case WM_SETFOCUS:
-		printf("setfocus\r\n");
-		break;
-	case WM_KILLFOCUS:
-		printf("killfocus\r\n");
-		break;
 	case WM_ACTIVATE:
 		switch( wParam )
 		{
 		case WA_CLICKACTIVE:
 		case WA_ACTIVE:
-			printf("activate\r\n");
 			SetCursor( crosshair_cursor );
 			ShowWindow( hwnd, SW_SHOW );
 			BringWindowToTop( hwnd );
 			break;
 		case WA_INACTIVE:
+			//Reset overlay and desktop_capture
 			if( overlay_dc )
 			{
 				SelectObject( overlay_dc, overlay_dc_deselectobj );
@@ -97,7 +93,7 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 				DeleteObject( desktop_capture_bitmap );
 				desktop_capture_bitmap = NULL;
 			}
-			printf("inactive\r\n");
+
 			box_x1 = 0;
 			box_y1 = 0;
 			box_x2 = 0;
@@ -111,6 +107,17 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		break;
 
 	case WM_LBUTTONUP:
+		//Need to make CaptureDCRegion return a pointer
+		wic.CaptureDCRegion( desktop_capture_dc, desktop_capture_bitmap,
+			box_x1 < box_x2 ? box_x1 : box_x2, //x
+			box_y1 < box_y2 ? box_y1 : box_y2, //y
+			box_x1 > box_x2 ? box_x1 - box_x2 : box_x2 - box_x1, //width
+			box_y1 > box_y2 ? box_y1 - box_y2 : box_y2 - box_y1, //height
+			&pimage_buffer );
+
+		VirtualFree( pimage_buffer, 0, MEM_RELEASE );
+
+		//Reset overlay and desktop_capture
 		if( overlay_dc )
 		{
 			SelectObject( overlay_dc, overlay_dc_deselectobj );
@@ -169,6 +176,7 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 			
 			pressed_hotkey = true;
 
+			//Reset overlay and desktop_capture
 			if( overlay_dc )
 			{
 				SelectObject( overlay_dc, overlay_dc_deselectobj );
@@ -200,11 +208,6 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 			InvalidateRect( hwnd, NULL, FALSE );
 			ShowWindow( hwnd, SW_SHOW );
 			SetCursor( crosshair_cursor );
-
-			//Need to make CaptureDCRegion return a pointer
-			//wic.CaptureDCRegion( desktop_capture_dc, desktop_capture_bitmap, 30, 50, 1200, 800 );
-
-			
 
 			break;
 		}
