@@ -50,8 +50,8 @@ struct WindowsImagingComponent
 	}
 
 	bool Initialize();
-	bool WindowsImagingComponent::ConvertBitmapToPng( HBITMAP hbmp, unsigned int width, unsigned int height, BYTE **ppimage_buffer );
-	bool WindowsImagingComponent::CaptureDCRegion( HDC source_dc, HBITMAP source_bitmap, unsigned int x, unsigned int y, unsigned int width, unsigned int height, BYTE **ppimage_buffer );
+	bool WindowsImagingComponent::ConvertBitmapToPng( HBITMAP hbmp, unsigned int width, unsigned int height, BYTE **ppimage_buffer, ULARGE_INTEGER *pimgbuf_real_len );
+	bool WindowsImagingComponent::CaptureDCRegion( HDC source_dc, HBITMAP source_bitmap, unsigned int x, unsigned int y, unsigned int width, unsigned int height, BYTE **ppimage_buffer, ULARGE_INTEGER *pimgbuf_real_len );
 };
 
 extern WindowsImagingComponent wic;

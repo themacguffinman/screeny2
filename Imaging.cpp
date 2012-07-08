@@ -136,7 +136,7 @@ bool WindowsImagingComponent::Initialize()
 	return true;
 }
 
-bool WindowsImagingComponent::ConvertBitmapToPng( HBITMAP hbmp, unsigned int width, unsigned int height, BYTE **ppimage_buffer )
+bool WindowsImagingComponent::ConvertBitmapToPng( HBITMAP hbmp, unsigned int width, unsigned int height, BYTE **ppimage_buffer, ULARGE_INTEGER *pimgbuf_real_len )
 {
 	HRESULT result;
 
@@ -230,6 +230,14 @@ bool WindowsImagingComponent::ConvertBitmapToPng( HBITMAP hbmp, unsigned int wid
 		return false;
 	}
 
+	LARGE_INTEGER zero = {0};
+	result = this->pStream->Seek( zero, STREAM_SEEK_CUR, pimgbuf_real_len );
+	if( !SUCCEEDED(result) )
+	{
+		logger.printf( _T("WindowsImagingComponent::ConvertBitmapToPng()::pStream->Seek(STREAM_SEEK_END); FATAL ERROR: %x\r\n"), result );
+		return false;
+	}
+
 	if( this->pWicBitmap )
 		this->pWicBitmap->Release();
 	this->pWicBitmap = NULL;
@@ -249,7 +257,7 @@ bool WindowsImagingComponent::ConvertBitmapToPng( HBITMAP hbmp, unsigned int wid
 	return true;
 }
 
-bool WindowsImagingComponent::CaptureDCRegion( HDC source_dc, HBITMAP source_bitmap, unsigned int x, unsigned int y, unsigned int width, unsigned int height, BYTE **ppimage_buffer )
+bool WindowsImagingComponent::CaptureDCRegion( HDC source_dc, HBITMAP source_bitmap, unsigned int x, unsigned int y, unsigned int width, unsigned int height, BYTE **ppimage_buffer, ULARGE_INTEGER *pimgbuf_real_len )
 {
 	int errmsg;
 
@@ -293,7 +301,7 @@ bool WindowsImagingComponent::CaptureDCRegion( HDC source_dc, HBITMAP source_bit
 		return false;
 	}
 
-	this->ConvertBitmapToPng( hbmp, width, height, ppimage_buffer );
+	this->ConvertBitmapToPng( hbmp, width, height, ppimage_buffer, pimgbuf_real_len );
 
 	//RELEASE THINGS
 	capture_hgdiobj_return = SelectObject( capture_dc, capture_hgdiobj_return );

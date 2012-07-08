@@ -28,6 +28,7 @@ HCURSOR arrow_cursor = NULL;
 HCURSOR crosshair_cursor = NULL;
 
 BYTE *pimage_buffer = NULL;
+ULARGE_INTEGER image_size = {0};
 
 HDC backbuffer_dc = NULL;
 HGDIOBJ backbuffer_dc_deselectobj = NULL;
@@ -113,7 +114,7 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 			box_y1 < box_y2 ? box_y1 : box_y2, //y
 			box_x1 > box_x2 ? box_x1 - box_x2 : box_x2 - box_x1, //width
 			box_y1 > box_y2 ? box_y1 - box_y2 : box_y2 - box_y1, //height
-			&pimage_buffer );
+			&pimage_buffer, &image_size );
 
 		VirtualFree( pimage_buffer, 0, MEM_RELEASE );
 
