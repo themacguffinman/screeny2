@@ -28,11 +28,15 @@ HCURSOR arrow_cursor = NULL;
 HCURSOR crosshair_cursor = NULL;
 
 HDC backbuffer_dc = NULL;
+HGDIOBJ backbuffer_dc_deselectobj = NULL;
 HBITMAP backbuffer_bitmap = NULL;
 HDC desktop_capture_dc = NULL;
+HGDIOBJ desktop_capture_dc_deselectobj = NULL;
 HBITMAP desktop_capture_bitmap = NULL;
 HDC overlay_dc = NULL;
+HGDIOBJ overlay_dc_deselectobj = NULL;
 HBITMAP overlay_bitmap = NULL;
+BYTE *overlay_bitmap_data = NULL;
 bool pressed_hotkey = false;
 bool click_selection = false;
 unsigned int box_x1 = 0;
@@ -48,31 +52,66 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		switch( wParam )
 		{
 		case VK_ESCAPE:
-			SendMessage( hwnd, WM_KILLFOCUS, NULL, NULL );
+			SendMessage( hwnd, WM_ACTIVATE, WA_INACTIVE, NULL );
 			break;
 		}
 		break;
+
 	case WM_SETFOCUS:
-		SetCursor( crosshair_cursor );
-		ShowWindow( hwnd, SW_SHOW );
-		BringWindowToTop( hwnd );
+		printf("setfocus\r\n");
 		break;
 	case WM_KILLFOCUS:
 		printf("killfocus\r\n");
-		click_selection = false;
-		pressed_hotkey = false;
-		SetCursor( arrow_cursor );
-		ShowWindow( hwnd, SW_HIDE );
+		break;
+	case WM_ACTIVATE:
+		switch( wParam )
+		{
+		case WA_CLICKACTIVE:
+		case WA_ACTIVE:
+			printf("activate\r\n");
+			SetCursor( crosshair_cursor );
+			ShowWindow( hwnd, SW_SHOW );
+			BringWindowToTop( hwnd );
+			break;
+		case WA_INACTIVE:
+			printf("inactive\r\n");
+			box_x1 = 0;
+			box_y1 = 0;
+			box_x2 = 0;
+			box_y2 = 0;
+			click_selection = false;
+			pressed_hotkey = false;
+			SetCursor( arrow_cursor );
+			ShowWindow( hwnd, SW_HIDE );
+			break;
+		}
 		break;
 
 	case WM_LBUTTONUP:
-		/*selection_box.left = box_x1 < box_x2 ? box_x1 : box_x2;
-		selection_box.top = box_y1 < box_y2 ? box_y1 : box_y2;
-		selection_box.right = box_x1 > box_x2 ? box_x1 : box_x2;
-		selection_box.bottom = box_y1 > box_y2 ? box_y1 : box_y2;*/
-
-		printf("Start: %d, %d \t End: %d, %d\r\n", box_x1, box_y1, box_x2, box_y2 );
-		click_selection = false;
+		if( overlay_dc )
+		{
+			SelectObject( overlay_dc, overlay_dc_deselectobj );
+			DeleteDC( overlay_dc );
+			overlay_dc = NULL;
+		}
+		if( overlay_bitmap )
+		{
+			VirtualFree( overlay_bitmap_data, 0, MEM_RELEASE );
+			DeleteObject( overlay_bitmap );
+			overlay_bitmap = NULL;
+		}
+		if( desktop_capture_dc )
+		{
+			SelectObject( desktop_capture_dc, desktop_capture_dc_deselectobj );
+			DeleteDC( desktop_capture_dc );
+			desktop_capture_dc = NULL;
+		}
+		if( desktop_capture_bitmap )
+		{
+			DeleteObject( desktop_capture_bitmap );
+			desktop_capture_bitmap = NULL;
+		}
+		SendMessage( hwnd, WM_ACTIVATE, WA_INACTIVE, NULL );
 		break;
 
 	case WM_MOUSEMOVE:
@@ -107,33 +146,33 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 			
 			pressed_hotkey = true;
 
+			if( overlay_dc )
+			{
+				SelectObject( overlay_dc, overlay_dc_deselectobj );
+				DeleteDC( overlay_dc );
+				overlay_dc = NULL;
+			}
+			if( overlay_bitmap )
+			{
+				VirtualFree( overlay_bitmap_data, 0, MEM_RELEASE );
+				DeleteObject( overlay_bitmap );
+				overlay_bitmap = NULL;
+			}
+			if( desktop_capture_dc )
+			{
+				SelectObject( desktop_capture_dc, desktop_capture_dc_deselectobj );
+				DeleteDC( desktop_capture_dc );
+				desktop_capture_dc = NULL;
+			}
 			if( desktop_capture_bitmap )
 			{
 				DeleteObject( desktop_capture_bitmap );
 				desktop_capture_bitmap = NULL;
 			}
-			if( desktop_capture_dc )
-			{
-				DeleteDC( desktop_capture_dc );
-				desktop_capture_dc = NULL;
-			}
 
-			CaptureScreen( &desktop_capture_dc, &desktop_capture_bitmap );
+			CaptureScreen( &desktop_capture_dc, &desktop_capture_bitmap, &desktop_capture_dc_deselectobj );
 
-			Whiten( desktop_capture_dc, desktop_capture_bitmap, desktop_rect.right-desktop_rect.left, desktop_rect.bottom-desktop_rect.top, &overlay_bitmap );
-
-			overlay_dc = CreateCompatibleDC( desktop_capture_dc );
-			if( !overlay_dc )
-			{
-				logger.printf( _T("WM_HOTKEY::CreateCompatibleDC(desktop_capture_dc); FATAL ERROR\r\n"));
-				Sleep(INFINITE);
-			}
-			HGDIOBJ hgdiobj_return = SelectObject( overlay_dc, overlay_bitmap );
-			if( hgdiobj_return == NULL || hgdiobj_return == HGDI_ERROR )
-			{
-				logger.printf( _T("SelectObject( backbuffer_dc, backbuffer_bitmap ); FATAL ERROR\r\n"));
-				Sleep(INFINITE);
-			}
+			Whiten( desktop_capture_dc, desktop_capture_bitmap, desktop_rect.right-desktop_rect.left, desktop_rect.bottom-desktop_rect.top, &overlay_dc, &overlay_bitmap, &overlay_dc_deselectobj, &overlay_bitmap_data );
 
 			InvalidateRect( hwnd, NULL, FALSE );
 			ShowWindow( hwnd, SW_SHOW );
@@ -213,7 +252,7 @@ void main()
 	logger.Initialize(); //logger declared as extern global variable in Error.h/Error.cpp
 
 
-
+	//FreeConsole();
 
 	GetWindowRect( GetDesktopWindow(), &desktop_rect );
 	

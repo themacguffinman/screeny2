@@ -3,11 +3,11 @@
 
 WindowsImagingComponent wic;
 
-bool Whiten( HDC source_dc, HBITMAP source_bitmap, unsigned int width, unsigned int height, HBITMAP *pwhitened_bitmap )
+bool Whiten( HDC source_dc, HBITMAP source_bitmap, unsigned int width, unsigned int height, HDC *pwhitened_dc, HBITMAP *pwhitened_bitmap, HGDIOBJ* pwhitened_dc_deselectobj, BYTE **ppwhitened_data )
 {
+	//FIX UP THE pwhitened_data and ppwhitened_data redundancy
 	int result;
 	BYTE *pwhitened_data;
-	BITMAPINFO whitened_bitmapinfo;
 
 	if( pwhitened_bitmap == NULL )
 	{
@@ -21,6 +21,7 @@ bool Whiten( HDC source_dc, HBITMAP source_bitmap, unsigned int width, unsigned 
 		logger.printf( _T("Whiten()::VirtualAlloc(); FATAL ERROR: %d\r\n"), GetLastError() );
 		return false;
 	}
+	*ppwhitened_data = pwhitened_data;
 
 	result = GetBitmapBits( source_bitmap, width * 4 * height, pwhitened_data );
 	if( result == NULL )
@@ -41,10 +42,23 @@ bool Whiten( HDC source_dc, HBITMAP source_bitmap, unsigned int width, unsigned 
 		return false;
 	}
 
+	*pwhitened_dc = CreateCompatibleDC( source_dc );
+	if( !*pwhitened_dc )
+	{
+		logger.printf( _T("Whiten()::CreateCompatibleDC(source_dc); FATAL ERROR\r\n"));
+		Sleep(INFINITE);
+	}
+	*pwhitened_dc_deselectobj = SelectObject( *pwhitened_dc, *pwhitened_bitmap );
+	if( *pwhitened_dc_deselectobj == NULL || *pwhitened_dc_deselectobj == HGDI_ERROR )
+	{
+		logger.printf( _T("Whiten()::SelectObject( whitened_dc, whitened_bitmap ); FATAL ERROR\r\n"));
+		Sleep(INFINITE);
+	}
+
 	return true;
 }
 
-bool CaptureScreen( HDC *pcapture_dc, HBITMAP *phbmp )
+bool CaptureScreen( HDC *pcapture_dc, HBITMAP *phbmp, HGDIOBJ *pcapture_dc_deselectobj )
 {
 	int errmsg;
 
@@ -102,6 +116,7 @@ bool CaptureScreen( HDC *pcapture_dc, HBITMAP *phbmp )
 
 	*pcapture_dc = capture_dc;
 	*phbmp = hbmp;
+	*pcapture_dc_deselectobj = hgdiobj_return;
 	ReleaseDC( desktop_window, desktop_dc );
 
 	return true;
@@ -275,6 +290,8 @@ bool WindowsImagingComponent::CaptureDCRegion( HDC source_dc, HBITMAP source_bit
 	capture_hgdiobj_return = SelectObject( capture_dc, capture_hgdiobj_return );
 	if( capture_hgdiobj_return == NULL || capture_hgdiobj_return == HGDI_ERROR )
 	{
+		DeleteObject( hbmp );
+		DeleteDC( capture_dc );
 		logger.printf( _T("CaptureDCRegion()::SelectObject( capture_dc ) [deselecting object]; FATAL ERROR\r\n"));
 		return false;
 	}

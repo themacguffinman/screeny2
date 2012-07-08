@@ -82,7 +82,7 @@ bool WindowManager::Initialize( WNDCLASSEX wndclass_in, unsigned int x, unsigned
 
 	this->window = CreateWindowEx
 		(
-		/*WS_EX_TOPMOST*/NULL, //extended styles
+		/*WS_EX_TOPMOST|*/WS_EX_TOOLWINDOW, //extended styles
 		this->wndclass.lpszClassName, //class name
 		_T("MainWindow"), //window name
 		WS_POPUP, //style tags
