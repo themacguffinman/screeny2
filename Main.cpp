@@ -304,8 +304,8 @@ void main()
 		logger.printf( _T("CreateCompatibleBitmap(); FATAL ERROR\r\n"));
 		Sleep(INFINITE);
 	}
-	HGDIOBJ hgdiobj_return = SelectObject( backbuffer_dc, backbuffer_bitmap );
-	if( hgdiobj_return == NULL || hgdiobj_return == HGDI_ERROR )
+	backbuffer_dc_deselectobj = SelectObject( backbuffer_dc, backbuffer_bitmap );
+	if( backbuffer_dc_deselectobj == NULL || backbuffer_dc_deselectobj == HGDI_ERROR )
 	{
 		logger.printf( _T("SelectObject( backbuffer_dc, backbuffer_bitmap ); FATAL ERROR\r\n"));
 		Sleep(INFINITE);
@@ -346,14 +346,32 @@ void main()
 
 
 	//CLEANUP
-	if( backbuffer_dc )
-		DeleteDC( backbuffer_dc );
-	if( backbuffer_bitmap )
-		DeleteObject( backbuffer_bitmap );
+	if( overlay_dc )
+	{
+		SelectObject( overlay_dc, overlay_dc_deselectobj );
+		DeleteDC( overlay_dc );
+		overlay_dc = NULL;
+	}
+	if( overlay_bitmap )
+	{
+		VirtualFree( overlay_bitmap_data, 0, MEM_RELEASE );
+		DeleteObject( overlay_bitmap );
+	}
+	if( desktop_capture_dc )
+	{
+		SelectObject( desktop_capture_dc, desktop_capture_dc_deselectobj );
+		DeleteDC( desktop_capture_dc );
+	}
 	if( desktop_capture_bitmap )
 		DeleteObject( desktop_capture_bitmap );
-	if( desktop_capture_dc )
-		DeleteDC( desktop_capture_dc );
+	if( backbuffer_dc )
+	{
+		SelectObject( backbuffer_dc, backbuffer_dc_deselectobj );
+		DeleteDC( backbuffer_dc );
+	}
+	if( backbuffer_bitmap )
+		DeleteObject( backbuffer_bitmap );
+
 	if( wic.pFactory )
 		wic.pFactory->Release();
 	CoUninitialize();
