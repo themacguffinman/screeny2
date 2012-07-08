@@ -74,6 +74,29 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 			BringWindowToTop( hwnd );
 			break;
 		case WA_INACTIVE:
+			if( overlay_dc )
+			{
+				SelectObject( overlay_dc, overlay_dc_deselectobj );
+				DeleteDC( overlay_dc );
+				overlay_dc = NULL;
+			}
+			if( overlay_bitmap )
+			{
+				VirtualFree( overlay_bitmap_data, 0, MEM_RELEASE );
+				DeleteObject( overlay_bitmap );
+				overlay_bitmap = NULL;
+			}
+			if( desktop_capture_dc )
+			{
+				SelectObject( desktop_capture_dc, desktop_capture_dc_deselectobj );
+				DeleteDC( desktop_capture_dc );
+				desktop_capture_dc = NULL;
+			}
+			if( desktop_capture_bitmap )
+			{
+				DeleteObject( desktop_capture_bitmap );
+				desktop_capture_bitmap = NULL;
+			}
 			printf("inactive\r\n");
 			box_x1 = 0;
 			box_y1 = 0;
