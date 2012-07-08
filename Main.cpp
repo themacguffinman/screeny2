@@ -16,6 +16,7 @@
 #pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #endif
 
+int result;
 RECT desktop_rect = {0};
 
 NOTIFYICONDATA main_nid = {0};
@@ -23,6 +24,8 @@ NOTIFYICONDATA main_nid = {0};
 HICON systray_icon = NULL;
 HICON imgtype_icon = NULL;
 
+HDC backbuffer_dc = NULL;
+HBITMAP backbuffer_bitmap = NULL;
 HDC desktop_capture_dc = NULL;
 HBITMAP desktop_capture_bitmap = NULL;
 HDC overlay_dc = NULL;
@@ -97,7 +100,17 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 			Whiten( desktop_capture_dc, desktop_capture_bitmap, desktop_rect.right-desktop_rect.left, desktop_rect.bottom-desktop_rect.top, &overlay_bitmap );
 
 			overlay_dc = CreateCompatibleDC( desktop_capture_dc );
-			SelectObject( overlay_dc, overlay_bitmap );
+			if( !overlay_dc )
+			{
+				logger.printf( _T("WM_HOTKEY::CreateCompatibleDC(desktop_capture_dc); FATAL ERROR\r\n"));
+				Sleep(INFINITE);
+			}
+			HGDIOBJ hgdiobj_return = SelectObject( overlay_dc, overlay_bitmap );
+			if( hgdiobj_return == NULL || hgdiobj_return == HGDI_ERROR )
+			{
+				logger.printf( _T("SelectObject( backbuffer_dc, backbuffer_bitmap ); FATAL ERROR\r\n"));
+				Sleep(INFINITE);
+			}
 
 			InvalidateRect( hwnd, NULL, FALSE );
 
@@ -113,10 +126,15 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		printf("wm_paint\r\n");
 
 		//Draw background
-		BitBlt( GetDC(hwnd), 0, 0, desktop_rect.right-desktop_rect.left, desktop_rect.bottom-desktop_rect.top, overlay_dc, 0, 0, SRCCOPY );
+		result = BitBlt( backbuffer_dc, 0, 0, desktop_rect.right-desktop_rect.left, desktop_rect.bottom-desktop_rect.top, overlay_dc, 0, 0, SRCCOPY );
+		if( !result )
+		{
+			logger.printf( _T("WM_PAINT::BitBlt(overlay_dc->backbuffer_dc); FATAL ERROR: %x\r\n"), GetLastError() );
+			return false;
+		}
 
 		//Draw overlay
-		BitBlt( GetDC(hwnd),
+		result = BitBlt( backbuffer_dc,
 			box_x1 < box_x2 ? box_x1 : box_x2, //dest x-coordinates
 			box_y1 < box_y2 ? box_y1 : box_y2, //dest y-coordinates
 			box_x1 > box_x2 ? box_x1 - box_x2 : box_x2 - box_x1, //width
@@ -125,6 +143,18 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 			box_x1 < box_x2 ? box_x1 : box_x2, //source x-coordinates
 			box_y1 < box_y2 ? box_y1 : box_y2, //source y-coordinates
 			SRCCOPY );
+		if( !result )
+		{
+			logger.printf( _T("WM_PAINT::BitBlt(desktop_capture_dc->backbuffer_dc); FATAL ERROR: %x\r\n"), GetLastError() );
+			return false;
+		}
+
+		result = BitBlt( GetDC(hwnd), 0, 0, desktop_rect.right-desktop_rect.left, desktop_rect.bottom-desktop_rect.top, backbuffer_dc, 0, 0, SRCCOPY );
+		if( !result )
+		{
+			logger.printf( _T("WM_PAINT::BitBlt(backbuffer_dc->GetDC(hwnd)); FATAL ERROR: %x\r\n"), GetLastError() );
+			return false;
+		}
 		break;
 	case WM_CLOSE:
 		if( DestroyWindow(hwnd) == false )
@@ -180,12 +210,34 @@ void main()
 	RegisterWindowClass( &screeny_wnd_class, MainWindowProc );
 	main_window.Initialize( screeny_wnd_class, desktop_rect.left, desktop_rect.top, desktop_rect.right-desktop_rect.left, desktop_rect.bottom-desktop_rect.top );
 
+	//Create a Backbuffer
+	backbuffer_dc = CreateCompatibleDC( GetDC(main_window.window) );
+	if( !backbuffer_dc )
+	{
+		logger.printf( _T("CreateCompatibleDC(); FATAL ERROR\r\n"));
+		Sleep(INFINITE);
+	}
+	backbuffer_bitmap = CreateCompatibleBitmap( GetDC(main_window.window), desktop_rect.right-desktop_rect.left, desktop_rect.bottom-desktop_rect.top );
+	if( !backbuffer_bitmap )
+	{
+		logger.printf( _T("CreateCompatibleBitmap(); FATAL ERROR\r\n"));
+		Sleep(INFINITE);
+	}
+	HGDIOBJ hgdiobj_return = SelectObject( backbuffer_dc, backbuffer_bitmap );
+	if( hgdiobj_return == NULL || hgdiobj_return == HGDI_ERROR )
+	{
+		logger.printf( _T("SelectObject( backbuffer_dc, backbuffer_bitmap ); FATAL ERROR\r\n"));
+		Sleep(INFINITE);
+	}
+
+	//Register hotkey
 	if( RegisterHotKey( main_window.window, 0, MOD_CONTROL, VK_F12 ) == NULL )
 	{
 		logger.printf( _T("RegisterHotKey() error: %x\r\n"), GetLastError() );
 		Sleep( INFINITE );
 	}
 
+	//Register Tray Icon
 	RegisterTrayIcon( main_window.window, systray_icon, _T("Screeny"), &main_nid );
 	//ShowBalloon( main_nid, imgtype_icon, _T("title is awesome"), _T("the awesome message is awesome and yes shit") );
 
@@ -213,6 +265,10 @@ void main()
 
 
 	//CLEANUP
+	if( backbuffer_dc )
+		DeleteDC( backbuffer_dc );
+	if( backbuffer_bitmap )
+		DeleteObject( backbuffer_bitmap );
 	if( desktop_capture_bitmap )
 		DeleteObject( desktop_capture_bitmap );
 	if( desktop_capture_dc )
