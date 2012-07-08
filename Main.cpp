@@ -55,7 +55,7 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		switch( wParam )
 		{
 		case VK_ESCAPE:
-			SendMessage( hwnd, WM_ACTIVATE, WA_INACTIVE, NULL );
+			ShowWindow( hwnd, SW_HIDE );
 			break;
 		}
 		break;
@@ -70,6 +70,7 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 			BringWindowToTop( hwnd );
 			break;
 		case WA_INACTIVE:
+			printf("inactive\r\n");
 			//Reset overlay and desktop_capture
 			if( overlay_dc )
 			{
@@ -102,12 +103,14 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 			click_selection = false;
 			pressed_hotkey = false;
 			SetCursor( arrow_cursor );
-			ShowWindow( hwnd, SW_HIDE );
 			break;
 		}
 		break;
 
 	case WM_LBUTTONUP:
+		if( !(pressed_hotkey&&click_selection) )
+			break;
+
 		//Need to make CaptureDCRegion return a pointer
 		wic.CaptureDCRegion( desktop_capture_dc, desktop_capture_bitmap,
 			box_x1 < box_x2 ? box_x1 : box_x2, //x
@@ -118,31 +121,7 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 
 		VirtualFree( pimage_buffer, 0, MEM_RELEASE );
 
-		//Reset overlay and desktop_capture
-		if( overlay_dc )
-		{
-			SelectObject( overlay_dc, overlay_dc_deselectobj );
-			DeleteDC( overlay_dc );
-			overlay_dc = NULL;
-		}
-		if( overlay_bitmap )
-		{
-			VirtualFree( overlay_bitmap_data, 0, MEM_RELEASE );
-			DeleteObject( overlay_bitmap );
-			overlay_bitmap = NULL;
-		}
-		if( desktop_capture_dc )
-		{
-			SelectObject( desktop_capture_dc, desktop_capture_dc_deselectobj );
-			DeleteDC( desktop_capture_dc );
-			desktop_capture_dc = NULL;
-		}
-		if( desktop_capture_bitmap )
-		{
-			DeleteObject( desktop_capture_bitmap );
-			desktop_capture_bitmap = NULL;
-		}
-		SendMessage( hwnd, WM_ACTIVATE, WA_INACTIVE, NULL );
+		ShowWindow( hwnd, SW_HIDE );
 		break;
 
 	case WM_MOUSEMOVE:
@@ -161,8 +140,6 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 			box_y2 = HIWORD(lParam);
 
 			InvalidateRect( hwnd, NULL, FALSE );
-
-			printf("mousedown\r\n");
 		}
 		break;
 
@@ -214,8 +191,6 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		}
 		break;
 	case WM_PAINT:
-		printf("wm_paint\r\n");
-
 		//Draw background
 		result = BitBlt( backbuffer_dc, 0, 0, desktop_rect.right-desktop_rect.left, desktop_rect.bottom-desktop_rect.top, overlay_dc, 0, 0, SRCCOPY );
 		if( !result )
