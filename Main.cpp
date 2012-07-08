@@ -24,12 +24,16 @@ NOTIFYICONDATA main_nid = {0};
 HICON systray_icon = NULL;
 HICON imgtype_icon = NULL;
 
+HCURSOR arrow_cursor = NULL;
+HCURSOR crosshair_cursor = NULL;
+
 HDC backbuffer_dc = NULL;
 HBITMAP backbuffer_bitmap = NULL;
 HDC desktop_capture_dc = NULL;
 HBITMAP desktop_capture_bitmap = NULL;
 HDC overlay_dc = NULL;
 HBITMAP overlay_bitmap = NULL;
+bool pressed_hotkey = false;
 bool click_selection = false;
 unsigned int box_x1 = 0;
 unsigned int box_y1 = 0;
@@ -40,8 +44,25 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 {
 	switch( uMsg )
 	{
+	case WM_KEYDOWN:
+		switch( wParam )
+		{
+		case VK_ESCAPE:
+			SendMessage( hwnd, WM_KILLFOCUS, NULL, NULL );
+			break;
+		}
+		break;
+	case WM_SETFOCUS:
+		SetCursor( crosshair_cursor );
+		ShowWindow( hwnd, SW_SHOW );
+		BringWindowToTop( hwnd );
+		break;
 	case WM_KILLFOCUS:
 		printf("killfocus\r\n");
+		click_selection = false;
+		pressed_hotkey = false;
+		SetCursor( arrow_cursor );
+		ShowWindow( hwnd, SW_HIDE );
 		break;
 
 	case WM_LBUTTONUP:
@@ -81,8 +102,10 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		case 0:
 			printf("WM_HOTKEY\r\n");
 
+			if( pressed_hotkey )
+				break;
 			
-			ShowWindow( hwnd, SW_SHOW );
+			pressed_hotkey = true;
 
 			if( desktop_capture_bitmap )
 			{
@@ -113,6 +136,8 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 			}
 
 			InvalidateRect( hwnd, NULL, FALSE );
+			ShowWindow( hwnd, SW_SHOW );
+			SetCursor( crosshair_cursor );
 
 			//Need to make CaptureDCRegion return a pointer
 			//wic.CaptureDCRegion( desktop_capture_dc, desktop_capture_bitmap, 30, 50, 1200, 800 );
@@ -149,6 +174,7 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 			return false;
 		}
 
+		//Flip backbuffer
 		result = BitBlt( GetDC(hwnd), 0, 0, desktop_rect.right-desktop_rect.left, desktop_rect.bottom-desktop_rect.top, backbuffer_dc, 0, 0, SRCCOPY );
 		if( !result )
 		{
@@ -202,6 +228,20 @@ void main()
 	if( !SUCCEEDED(result) )
 	{
 		logger.printf( _T("LoadIconMetric() FATAL ERROR: %d\r\n"), result );
+		Sleep( INFINITE );
+	}
+
+	//Load Cursors
+	arrow_cursor = LoadCursor( NULL, MAKEINTRESOURCE(IDC_ARROW) );
+	if( arrow_cursor == NULL )
+	{
+		logger.printf( _T("LoadCursor(IDC_ARROW) FATAL ERROR: %d\r\n"), GetLastError() );
+		Sleep( INFINITE );
+	}
+	crosshair_cursor = LoadCursor( NULL, MAKEINTRESOURCE(IDC_CROSS) );
+	if( crosshair_cursor == NULL )
+	{
+		logger.printf( _T("LoadCursor(IDC_CROSS) FATAL ERROR: %d\r\n"), GetLastError() );
 		Sleep( INFINITE );
 	}
 
