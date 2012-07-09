@@ -1,7 +1,6 @@
 #include "Main.h"
 #include <wincodec.h>
 #include <wincodecsdk.h>
-#pragma comment(lib, "WindowsCodecs.lib")
 
 #define PNG_BUFFER_SIZE 10*1024*1024
 

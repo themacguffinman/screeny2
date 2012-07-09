@@ -68,6 +68,8 @@ bool ShowBalloon( NOTIFYICONDATA nid, HICON balloon_icon, TCHAR *title, TCHAR *m
 		logger.printf( _T("ShowBalloon()::Shell_NotifyIcon(NIM_MODIFY) error\r\n") );
 		return false;
 	}
+
+	return true;
 }
 
 bool WindowManager::Initialize( WNDCLASSEX wndclass_in, unsigned int x, unsigned int y, unsigned int width, unsigned int height )

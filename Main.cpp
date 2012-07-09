@@ -3,18 +3,7 @@
 #include "Errors.h"
 #include "WindowManager.h"
 #include "resource.h"
-
-#pragma comment(lib, "Comctl32.lib")
-
-#if defined _M_IX86
-#pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='x86' publicKeyToken='6595b64144ccf1df' language='*'\"")
-#elif defined _M_IA64
-#pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='ia64' publicKeyToken='6595b64144ccf1df' language='*'\"")
-#elif defined _M_X64
-#pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='amd64' publicKeyToken='6595b64144ccf1df' language='*'\"")
-#else
-#pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
-#endif
+#include <curl\curl.h>
 
 int result;
 RECT desktop_rect = {0};
@@ -24,11 +13,12 @@ NOTIFYICONDATA main_nid = {0};
 HICON systray_icon = NULL;
 HICON imgtype_icon = NULL;
 
-HCURSOR arrow_cursor = NULL;
 HCURSOR crosshair_cursor = NULL;
 
 BYTE *pimage_buffer = NULL;
 ULARGE_INTEGER image_size = {0};
+
+CURL *pcurl_handle;
 
 HDC backbuffer_dc = NULL;
 HGDIOBJ backbuffer_dc_deselectobj = NULL;
@@ -102,7 +92,7 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 			box_y2 = 0;
 			click_selection = false;
 			pressed_hotkey = false;
-			SetCursor( arrow_cursor );
+			SetCursor( NULL );
 			break;
 		}
 		break;
@@ -273,12 +263,6 @@ void main()
 	}
 
 	//Load Cursors
-	arrow_cursor = LoadCursor( NULL, MAKEINTRESOURCE(IDC_ARROW) );
-	if( arrow_cursor == NULL )
-	{
-		logger.printf( _T("LoadCursor(IDC_ARROW) FATAL ERROR: %d\r\n"), GetLastError() );
-		Sleep( INFINITE );
-	}
 	crosshair_cursor = LoadCursor( NULL, MAKEINTRESOURCE(IDC_CROSS) );
 	if( crosshair_cursor == NULL )
 	{
@@ -333,6 +317,20 @@ void main()
 	//Initialize Windows Imaging Component (COM)
 	wic.Initialize();
 
+	//Initialize libcurl
+	CURLcode libcurl_result = curl_global_init( CURL_GLOBAL_WIN32 );
+	if( libcurl_result )
+	{
+		logger.printf( _T("curl_global_init(CURL_GLOBAL_WIN32); FATAL ERROR: %d\r\n"), libcurl_result );
+		Sleep( INFINITE );
+	}
+	pcurl_handle = curl_easy_init();
+	if( pcurl_handle == NULL )
+	{
+		logger.printf( _T("curl_easy_init(); FATAL ERROR\r\n") );
+		Sleep( INFINITE );
+	}
+
 
 	//Message loop
 	while( GetMessage( &wnd_msg, NULL, 0, 0 ) )
@@ -346,6 +344,8 @@ void main()
 
 
 	//CLEANUP
+	curl_global_cleanup();
+
 	if( overlay_dc )
 	{
 		SelectObject( overlay_dc, overlay_dc_deselectobj );
