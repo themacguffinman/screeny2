@@ -59,5 +59,3 @@ struct imgur_xml_obj
 		imgur_error_info error;
 	};
 };
-
-void parse_xml( char *xml_str, unsigned int xml_strlen, imgur_xml_obj *presponse );
