@@ -46,7 +46,7 @@ bool parse_xml_tag( char *xml_str, unsigned int xml_strlen, char **pptag_name, c
 									if( NULL == strcmp( *pptag_name, tempbuf ) )
 									{
 										(*pptag_data) = &xml_str[tn_end+1];
-										xml_str[td_end] = NULL;
+										xml_str[td_end-1] = NULL;
 
 										//output the rest of the string
 										if( ct_end + 1 < xml_strlen )
@@ -75,11 +75,15 @@ bool parse_xml_tag( char *xml_str, unsigned int xml_strlen, char **pptag_name, c
 
 bool parse_imgur_xml( char *xml_str, unsigned int xml_strlen, imgur_xml_obj *presponse )
 {
+	bool result;
 	char *proot = NULL;
 	char *proot_data = NULL;
+	char *prest_of_string = NULL;
 
 	//extract root node
-	//parse_xml_tag( xml_str, xml_strlen, &proot, &proot_data );
+	result = parse_xml_tag( xml_str, xml_strlen, &proot, &proot_data, &prest_of_string );
+	if( proot_data == NULL || result == false )
+		return false;
 
 	if( NULL == strcmp( proot, "upload" ) )
 	{
@@ -87,12 +91,83 @@ bool parse_imgur_xml( char *xml_str, unsigned int xml_strlen, imgur_xml_obj *pre
 		
 		char *pimage;
 		char *pimage_data;
+		char *ptemp;
+		char *ptemp_data;
 
 		//extract image node
-		
+		parse_xml_tag( proot_data, strlen(proot_data), &pimage, &pimage_data, &prest_of_string );
 
 		//discard name, title and caption
+		parse_xml_tag( pimage_data, strlen(pimage_data), &ptemp, &ptemp_data, &prest_of_string );
+		parse_xml_tag( prest_of_string, strlen(prest_of_string), &ptemp, &ptemp_data, &prest_of_string );
+		parse_xml_tag( prest_of_string, strlen(prest_of_string), &ptemp, &ptemp_data, &prest_of_string );
 
+		//glean hash
+		parse_xml_tag( prest_of_string, strlen(prest_of_string), &ptemp, &ptemp_data, &prest_of_string );
+		strcpy( presponse->upload.image.hash, ptemp_data );
+
+		//glean deletehash
+		parse_xml_tag( prest_of_string, strlen(prest_of_string), &ptemp, &ptemp_data, &prest_of_string );
+		strcpy( presponse->upload.image.deletehash, ptemp_data );
+
+		//glean datetime
+		parse_xml_tag( prest_of_string, strlen(prest_of_string), &ptemp, &ptemp_data, &prest_of_string );
+		strcpy( presponse->upload.image.datetime, ptemp_data );
+
+		//glean image type
+		parse_xml_tag( prest_of_string, strlen(prest_of_string), &ptemp, &ptemp_data, &prest_of_string );
+		for( int i = 0; i + 1 < strlen(ptemp_data); i++ )
+		{
+			if( ptemp_data[i] == '/' )
+			{
+				ptemp_data = &ptemp_data[i+1];
+				break;
+			}
+		}
+		if( !strcmp( ptemp_data, "png" ) )
+			presponse->upload.image.img_type = PNG;
+		else if( !strcmp( ptemp_data, "bmp" ) )
+			presponse->upload.image.img_type = BMP;
+		else if( !strcmp( ptemp_data, "jpeg" ) )
+			presponse->upload.image.img_type = JPEG;
+		else if( !strcmp( ptemp_data, "gif" ) )
+			presponse->upload.image.img_type = GIF;
+		else if( !strcmp( ptemp_data, "apng" ) )
+			presponse->upload.image.img_type = APNG;
+		else if( !strcmp( ptemp_data, "tiff" ) )
+			presponse->upload.image.img_type = TIFF;
+		else if( !strcmp( ptemp_data, "pdf" ) )
+			presponse->upload.image.img_type = PDF;
+		else if( !strcmp( ptemp_data, "xcf" ) )
+			presponse->upload.image.img_type = XCF;
+		else presponse->upload.image.img_type = INVALID;
+
+		//glean animated
+		parse_xml_tag( prest_of_string, strlen(prest_of_string), &ptemp, &ptemp_data, &prest_of_string );
+		if( !strcmp( ptemp_data, "true" ) )
+			presponse->upload.image.animated = true;
+		else
+			presponse->upload.image.animated = false;
+
+		//glean width
+		parse_xml_tag( prest_of_string, strlen(prest_of_string), &ptemp, &ptemp_data, &prest_of_string );
+		presponse->upload.image.width = atoi( ptemp_data );
+
+		//glean height
+		parse_xml_tag( prest_of_string, strlen(prest_of_string), &ptemp, &ptemp_data, &prest_of_string );
+		presponse->upload.image.height = atoi( ptemp_data );
+
+		//glean size
+		parse_xml_tag( prest_of_string, strlen(prest_of_string), &ptemp, &ptemp_data, &prest_of_string );
+		presponse->upload.image.size = atoi( ptemp_data );
+
+		//glean views
+		parse_xml_tag( prest_of_string, strlen(prest_of_string), &ptemp, &ptemp_data, &prest_of_string );
+		presponse->upload.image.views = atoi( ptemp_data );
+
+		//glean bandwidh
+		parse_xml_tag( prest_of_string, strlen(prest_of_string), &ptemp, &ptemp_data, &prest_of_string );
+		presponse->upload.image.bandwidth = atoi( ptemp_data );
 	} else if ( NULL == strcmp( proot, "error" ) )
 	{
 		strcpy( presponse->root, proot );
