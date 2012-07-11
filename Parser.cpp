@@ -1,4 +1,5 @@
 #include "Parser.h"
+#include "Errors.h"
 
 bool parse_xml_tag( char *xml_str, unsigned int xml_strlen, char **pptag_name, char **pptag_data, char **pprest_of_string )
 {
@@ -89,16 +90,18 @@ bool parse_imgur_xml( char *xml_str, unsigned int xml_strlen, imgur_xml_obj *pre
 	{
 		strcpy( presponse->root, proot );
 		
-		char *pimage;
-		char *pimage_data;
+		char *pchild;
+		char *pchild_data;
 		char *ptemp;
 		char *ptemp_data;
+		char *plinks;
 
 		//extract image node
-		parse_xml_tag( proot_data, strlen(proot_data), &pimage, &pimage_data, &prest_of_string );
+		parse_xml_tag( proot_data, strlen(proot_data), &pchild, &pchild_data, &prest_of_string );
+		plinks = prest_of_string;
 
 		//discard name, title and caption
-		parse_xml_tag( pimage_data, strlen(pimage_data), &ptemp, &ptemp_data, &prest_of_string );
+		parse_xml_tag( pchild_data, strlen(pchild_data), &ptemp, &ptemp_data, &prest_of_string );
 		parse_xml_tag( prest_of_string, strlen(prest_of_string), &ptemp, &ptemp_data, &prest_of_string );
 		parse_xml_tag( prest_of_string, strlen(prest_of_string), &ptemp, &ptemp_data, &prest_of_string );
 
@@ -168,9 +171,52 @@ bool parse_imgur_xml( char *xml_str, unsigned int xml_strlen, imgur_xml_obj *pre
 		//glean bandwidh
 		parse_xml_tag( prest_of_string, strlen(prest_of_string), &ptemp, &ptemp_data, &prest_of_string );
 		presponse->upload.image.bandwidth = atoi( ptemp_data );
+
+
+		//extract links
+		parse_xml_tag( plinks, strlen(plinks), &pchild, &pchild_data, &prest_of_string );
+
+		//glean original link
+		parse_xml_tag( pchild_data, strlen(pchild_data), &ptemp, &ptemp_data, &prest_of_string );
+		strcpy( presponse->upload.links.original, ptemp_data );
+
+		//glean imgur page link
+		parse_xml_tag( prest_of_string, strlen(prest_of_string), &ptemp, &ptemp_data, &prest_of_string );
+		strcpy( presponse->upload.links.imgur_page, ptemp_data );
+
+		//glean delete link
+		parse_xml_tag( prest_of_string, strlen(prest_of_string), &ptemp, &ptemp_data, &prest_of_string );
+		strcpy( presponse->upload.links.delete_page, ptemp_data );
+
+		//glean small square link
+		parse_xml_tag( prest_of_string, strlen(prest_of_string), &ptemp, &ptemp_data, &prest_of_string );
+		strcpy( presponse->upload.links.small_square, ptemp_data );
+
+		//glean large thumbnail link
+		parse_xml_tag( prest_of_string, strlen(prest_of_string), &ptemp, &ptemp_data, &prest_of_string );
+		strcpy( presponse->upload.links.large_square, ptemp_data );
 	} else if ( NULL == strcmp( proot, "error" ) )
 	{
 		strcpy( presponse->root, proot );
+
+		char *ptemp;
+		char *ptemp_data;
+
+		//glean message
+		parse_xml_tag( proot_data, strlen(proot_data), &ptemp, &ptemp_data, &prest_of_string );
+		strcpy( presponse->error.message, ptemp_data );
+
+		//glean request
+		parse_xml_tag( prest_of_string, strlen(prest_of_string), &ptemp, &ptemp_data, &prest_of_string );
+		strcpy( presponse->error.request, ptemp_data );
+
+		//glean method
+		parse_xml_tag( prest_of_string, strlen(prest_of_string), &ptemp, &ptemp_data, &prest_of_string );
+		strcpy( presponse->error.method, ptemp_data );
+
+		//glean format
+		parse_xml_tag( prest_of_string, strlen(prest_of_string), &ptemp, &ptemp_data, &prest_of_string );
+		strcpy( presponse->error.format, ptemp_data );
 	} else {
 		return false;
 	}
