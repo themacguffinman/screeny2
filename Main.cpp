@@ -39,6 +39,50 @@ unsigned int box_y1 = 0;
 unsigned int box_x2 = 0;
 unsigned int box_y2 = 0;
 
+bool SetClipboardText( char *str )
+{
+	HGLOBAL globalmemory;
+	void *cliptext = 0;
+
+	if( !OpenClipboard( main_window.window ) )
+	{
+		logger.printf( _T("Open Clipboard failed") );
+		return false;
+	}
+
+	if( !EmptyClipboard() )
+	{
+		logger.printf( _T("Empty Clipboard failed") );
+		return false;
+	}
+
+	globalmemory = GlobalAlloc( GMEM_MOVEABLE, strlen(str) + 1 );
+
+	cliptext = GlobalLock( globalmemory );
+
+	if ( 0 == cliptext )
+	{
+		GlobalFree( globalmemory );
+		CloseClipboard();
+		logger.printf( _T("failed to GlobalLock") );
+		return false;
+	}
+
+	memcpy( cliptext, str, strlen(str) + 1 );
+
+	HANDLE clipdata = SetClipboardData( CF_TEXT, cliptext );
+
+	GlobalUnlock( cliptext );
+
+	if( !CloseClipboard() )
+	{
+		logger.printf( _T("Close Clipboard failed") );
+		return false;
+	}
+
+	return true;
+}
+
 CaptureScreenThread_in *CreateCaptureScreenThread_in( CURL *pcurl_handle, BYTE *pimage_buffer, ULONGLONG image_size )
 {
 	CaptureScreenThread_in *cst_in = new CaptureScreenThread_in();
@@ -65,6 +109,7 @@ DWORD WINAPI CaptureScreenThreadProc( LPVOID lpParam )
 
 	delete lpParam;
 
+	SetClipboardText( imgur_uploads.back().upload.links.original );
 	//printf("%s\r\n", imgur_uploads[0].upload.links.original );
 
 	return 0;
