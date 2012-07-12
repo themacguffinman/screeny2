@@ -87,6 +87,13 @@ bool parse_imgur_xml( char *xml_str, unsigned int xml_strlen, imgur_xml_obj *pre
 	char *proot_data = NULL;
 	char *prest_of_string = NULL;
 
+	//if it's not XML, there was a big problem
+	if( strncmp( xml_str, "<?xml", 5 ) )
+	{
+		logger.printf( _T("parse_imgur_xml() FATAL ERROR: xml_str is NOT XML!\r\n") );
+		return false;
+	}
+
 	//skip XML schema
 	unsigned int after_schema;
 	for( after_schema = 0; after_schema < xml_strlen; after_schema++ )

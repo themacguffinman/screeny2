@@ -13,6 +13,7 @@ NOTIFYICONDATA main_nid = {0};
 
 HICON systray_icon = NULL;
 HICON imgtype_icon = NULL;
+HICON error_icon = NULL;
 
 HCURSOR crosshair_cursor = NULL;
 
@@ -53,13 +54,18 @@ DWORD WINAPI CaptureScreenThreadProc( LPVOID lpParam )
 	CaptureScreenThread_in *input = (CaptureScreenThread_in *) lpParam;
 
 	if( false == ImgurUpload( input->pcurl_handle, input->pimage_buffer, input->image_buffer_len ) )
+	{
 		logger.printf( _T("CaptureScreenThreadProc(): Screenshot upload failure\r\n") );
+		ShowBalloon( main_nid, error_icon, _T("Unexpected error in uploading image to Imgur"), _T("Please consult the log for more details") );
+	} else {
+		ShowBalloon( main_nid, imgtype_icon, _T("Image successfully uploaded to Imgur"), _T("A hyperlink to the image has been copied to your clipboard") );
+	}
 
 	VirtualFree( input->pimage_buffer, 0, MEM_RELEASE );
 
 	delete lpParam;
 
-	printf("%s\r\n", imgur_uploads[0].upload.links.original );
+	//printf("%s\r\n", imgur_uploads[0].upload.links.original );
 
 	return 0;
 }
@@ -141,8 +147,6 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 
 		if( NULL == CreateThread( NULL, NULL, CaptureScreenThreadProc, cst_in, 0, NULL ) )
 			logger.printf( _T("WM_LBUTTONUP::CreateThread() FATAL ERROR: %d\r\n"), GetLastError() );
-
-		//printf("%s\r\n", imgur_uploads[0].upload.links.original );
 
 		ShowWindow( hwnd, SW_HIDE );
 		break;
@@ -294,6 +298,16 @@ void main()
 		logger.printf( _T("LoadIconMetric() FATAL ERROR: %d\r\n"), result );
 		Sleep( INFINITE );
 	}
+	
+	SHSTOCKICONINFO shsii;
+	shsii.cbSize = sizeof(SHSTOCKICONINFO);
+	result = SHGetStockIconInfo( SIID_ERROR, SHGSI_ICON|SHGSI_LARGEICON, &shsii );
+	if( !SUCCEEDED(result) )
+	{
+		logger.printf( _T("SHGetStockIconInfo(SIID_ERROR) FATAL ERROR: %d\r\n"), result );
+		Sleep( INFINITE );
+	}
+	error_icon = shsii.hIcon;
 
 	//Load Cursors
 	crosshair_cursor = LoadCursor( NULL, MAKEINTRESOURCE(IDC_CROSS) );
