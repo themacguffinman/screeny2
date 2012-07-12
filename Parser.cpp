@@ -22,7 +22,13 @@ bool parse_xml_tag( char *xml_str, unsigned int xml_strlen, char **pptag_name, c
 					xml_str[tn_end] = NULL;
 
 					*pptag_data = NULL;
-					break;
+
+					//output rest of string
+					if( tn_end + 2 < xml_strlen )
+						(*pprest_of_string) = &xml_str[tn_end+2];
+					else
+						(*pprest_of_string) = NULL;
+					return true;
 				}
 
 				//check for end of opening tag
@@ -81,8 +87,23 @@ bool parse_imgur_xml( char *xml_str, unsigned int xml_strlen, imgur_xml_obj *pre
 	char *proot_data = NULL;
 	char *prest_of_string = NULL;
 
+	//skip XML schema
+	unsigned int after_schema;
+	for( after_schema = 0; after_schema < xml_strlen; after_schema++ )
+	{
+		if( xml_str[after_schema] == '?' )
+		{
+			for( after_schema = after_schema+1; after_schema < xml_strlen; after_schema++ )
+			{
+				if( xml_str[after_schema] == '?' )
+					break;
+			}
+			break;
+		}
+	}
+
 	//extract root node
-	result = parse_xml_tag( xml_str, xml_strlen, &proot, &proot_data, &prest_of_string );
+	result = parse_xml_tag( &xml_str[after_schema+2], xml_strlen-after_schema-2, &proot, &proot_data, &prest_of_string );
 	if( proot_data == NULL || result == false )
 		return false;
 

@@ -10,7 +10,7 @@ enum ImgType
 	BMP,
 	PDF,
 	XCF,
-	INVALID
+	INVALID=0
 };
 
 struct imgur_image_info

@@ -3,6 +3,7 @@
 #include "Errors.h"
 #include "WindowManager.h"
 #include "resource.h"
+#include "Network.h"
 #include <curl\curl.h>
 
 int result;
@@ -36,6 +37,32 @@ unsigned int box_x1 = 0;
 unsigned int box_y1 = 0;
 unsigned int box_x2 = 0;
 unsigned int box_y2 = 0;
+
+CaptureScreenThread_in *CreateCaptureScreenThread_in( CURL *pcurl_handle, BYTE *pimage_buffer, ULONGLONG image_size )
+{
+	CaptureScreenThread_in *cst_in = new CaptureScreenThread_in();
+	cst_in->pcurl_handle = pcurl_handle;
+	cst_in->pimage_buffer = pimage_buffer;
+	cst_in->image_buffer_len = image_size;
+	
+	return cst_in;
+}
+
+DWORD WINAPI CaptureScreenThreadProc( LPVOID lpParam )
+{
+	CaptureScreenThread_in *input = (CaptureScreenThread_in *) lpParam;
+
+	if( false == ImgurUpload( input->pcurl_handle, input->pimage_buffer, input->image_buffer_len ) )
+		logger.printf( _T("CaptureScreenThreadProc(): Screenshot upload failure\r\n") );
+
+	VirtualFree( input->pimage_buffer, 0, MEM_RELEASE );
+
+	delete lpParam;
+
+	printf("%s\r\n", imgur_uploads[0].upload.links.original );
+
+	return 0;
+}
 
 LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 {
@@ -109,7 +136,13 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 			box_y1 > box_y2 ? box_y1 - box_y2 : box_y2 - box_y1, //height
 			&pimage_buffer, &image_size );
 
-		VirtualFree( pimage_buffer, 0, MEM_RELEASE );
+		CaptureScreenThread_in *cst_in;
+		cst_in = CreateCaptureScreenThread_in( pcurl_handle, pimage_buffer, image_size.QuadPart );
+
+		if( NULL == CreateThread( NULL, NULL, CaptureScreenThreadProc, cst_in, 0, NULL ) )
+			logger.printf( _T("WM_LBUTTONUP::CreateThread() FATAL ERROR: %d\r\n"), GetLastError() );
+
+		//printf("%s\r\n", imgur_uploads[0].upload.links.original );
 
 		ShowWindow( hwnd, SW_HIDE );
 		break;
