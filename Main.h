@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <CommCtrl.h>
 #include <curl\curl.h>
+#include <queue>
 #pragma once
 
 #pragma warning( disable : 4996 )

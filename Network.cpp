@@ -24,8 +24,15 @@ size_t writefunction( char *ptr, size_t size, size_t nmemb, void *userdata)
 	return nmemb;
 }
 
-bool ImgurUpload( CURL *pcurl_handle, BYTE *pimage_buffer, unsigned int image_buffer_len )
+bool ImgurUpload( BYTE *pimage_buffer, unsigned int image_buffer_len )
 {
+	CURL *pcurl_handle = curl_easy_init();
+	if( pcurl_handle == NULL )
+	{
+		logger.printf( _T("ImgurUpload()::curl_easy_init(); FATAL ERROR\r\n") );
+		Sleep( INFINITE );
+	}
+
 	CURLcode libcurl_result;
 
 	curl_httppost *formpost = NULL;
@@ -67,6 +74,8 @@ bool ImgurUpload( CURL *pcurl_handle, BYTE *pimage_buffer, unsigned int image_bu
 		logger.printf( _T("ImgurUpload(buffer)::curl_easy_perform() FATAL ERROR\r\n") );
 		return false;
 	}
+
+	curl_easy_cleanup(pcurl_handle);
 
 	return true;
 }

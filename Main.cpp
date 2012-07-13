@@ -17,10 +17,7 @@ HICON error_icon = NULL;
 
 HCURSOR crosshair_cursor = NULL;
 
-BYTE *pimage_buffer = NULL;
-ULARGE_INTEGER image_size = {0};
-
-CURL *pcurl_handle;
+std::queue<image_bufobj> image_buffers;
 
 HDC backbuffer_dc = NULL;
 HGDIOBJ backbuffer_dc_deselectobj = NULL;
@@ -83,12 +80,10 @@ bool SetClipboardText( char *str )
 	return true;
 }
 
-CaptureScreenThread_in *CreateCaptureScreenThread_in( CURL *pcurl_handle, BYTE *pimage_buffer, ULONGLONG image_size )
+CaptureScreenThread_in *CreateCaptureScreenThread_in( std::queue<image_bufobj> *buffer_queue )
 {
 	CaptureScreenThread_in *cst_in = new CaptureScreenThread_in();
-	cst_in->pcurl_handle = pcurl_handle;
-	cst_in->pimage_buffer = pimage_buffer;
-	cst_in->image_buffer_len = image_size;
+	cst_in->bufq = buffer_queue;
 	
 	return cst_in;
 }
@@ -97,15 +92,18 @@ DWORD WINAPI CaptureScreenThreadProc( LPVOID lpParam )
 {
 	CaptureScreenThread_in *input = (CaptureScreenThread_in *) lpParam;
 
-	if( false == ImgurUpload( input->pcurl_handle, input->pimage_buffer, input->image_buffer_len ) )
+	if( false == ImgurUpload( input->bufq->front().pimage_buffer, input->bufq->front().image_size.QuadPart ) )
 	{
 		logger.printf( _T("CaptureScreenThreadProc(): Screenshot upload failure\r\n") );
 		ShowBalloon( main_nid, error_icon, _T("Unexpected error in uploading image to Imgur"), _T("Please consult the log for more details") );
 	} else {
+		logger.printf( _T("Screenshot successfully uploaded \t(%s) \t(%s)"), imgur_uploads.back().upload.image.datetime, imgur_uploads.back().upload.links.original );
 		ShowBalloon( main_nid, imgtype_icon, _T("Image successfully uploaded to Imgur"), _T("A hyperlink to the image has been copied to your clipboard") );
 	}
 
-	VirtualFree( input->pimage_buffer, 0, MEM_RELEASE );
+	VirtualFree( input->bufq->front().pimage_buffer, 0, MEM_RELEASE );
+
+	input->bufq->pop();
 
 	delete lpParam;
 
@@ -179,16 +177,20 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		if( !(pressed_hotkey&&click_selection) )
 			break;
 
+		image_bufobj imgbuf;
+
 		//Need to make CaptureDCRegion return a pointer
 		wic.CaptureDCRegion( desktop_capture_dc, desktop_capture_bitmap,
 			box_x1 < box_x2 ? box_x1 : box_x2, //x
 			box_y1 < box_y2 ? box_y1 : box_y2, //y
 			box_x1 > box_x2 ? box_x1 - box_x2 : box_x2 - box_x1, //width
 			box_y1 > box_y2 ? box_y1 - box_y2 : box_y2 - box_y1, //height
-			&pimage_buffer, &image_size );
+			&imgbuf.pimage_buffer, &imgbuf.image_size );
+
+		image_buffers.push(imgbuf);
 
 		CaptureScreenThread_in *cst_in;
-		cst_in = CreateCaptureScreenThread_in( pcurl_handle, pimage_buffer, image_size.QuadPart );
+		cst_in = CreateCaptureScreenThread_in( &image_buffers );
 
 		if( NULL == CreateThread( NULL, NULL, CaptureScreenThreadProc, cst_in, 0, NULL ) )
 			logger.printf( _T("WM_LBUTTONUP::CreateThread() FATAL ERROR: %d\r\n"), GetLastError() );
@@ -317,7 +319,8 @@ LRESULT CALLBACK MainWindowProc ( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 	return DefWindowProc( hwnd, uMsg, wParam, lParam );
 }
 
-void main()
+//int CALLBACK WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow )
+int main()
 {
 	HRESULT result;
 	MSG wnd_msg;
@@ -325,8 +328,6 @@ void main()
 	//Logger ALWAYS STARTS FIRST
 	logger.Initialize(); //logger declared as extern global variable in Error.h/Error.cpp
 
-
-	//FreeConsole();
 
 	GetWindowRect( GetDesktopWindow(), &desktop_rect );
 	
@@ -416,13 +417,6 @@ void main()
 		logger.printf( _T("curl_global_init(CURL_GLOBAL_WIN32); FATAL ERROR: %d\r\n"), libcurl_result );
 		Sleep( INFINITE );
 	}
-	pcurl_handle = curl_easy_init();
-	if( pcurl_handle == NULL )
-	{
-		logger.printf( _T("curl_easy_init(); FATAL ERROR\r\n") );
-		Sleep( INFINITE );
-	}
-
 
 	//Message loop
 	while( GetMessage( &wnd_msg, NULL, 0, 0 ) )
@@ -473,5 +467,6 @@ void main()
 	if( systray_icon )
 		DestroyIcon( systray_icon );
 
+	return 0;
 	//Sleep( INFINITE );
 }
