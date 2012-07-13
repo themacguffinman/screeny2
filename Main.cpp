@@ -97,7 +97,7 @@ DWORD WINAPI CaptureScreenThreadProc( LPVOID lpParam )
 		logger.printf( _T("CaptureScreenThreadProc(): Screenshot upload failure\r\n") );
 		ShowBalloon( main_nid, error_icon, _T("Unexpected error in uploading image to Imgur"), _T("Please consult the log for more details") );
 	} else {
-		logger.printf( _T("Screenshot successfully uploaded \t(%s) \t(%s)"), imgur_uploads.back().upload.image.datetime, imgur_uploads.back().upload.links.original );
+		logger.printfA( "Screenshot successfully uploaded \t(%s) \t(%s)", imgur_uploads.back().upload.image.datetime, imgur_uploads.back().upload.links.original );
 		ShowBalloon( main_nid, imgtype_icon, _T("Image successfully uploaded to Imgur"), _T("A hyperlink to the image has been copied to your clipboard") );
 	}
 
